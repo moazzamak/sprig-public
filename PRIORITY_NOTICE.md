@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`d4160b583ee7cd08a31492ffd890b04c27018f3ea44a5bf6e6e8368ca5ecb0f3`),
+`32f3f7aa44f6d578dbfbff4802bf574ef5d71ad1e39c7612c0959149dac624bd`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -15,8 +15,10 @@ this date.
 
 Amendments are recorded as subsequent commits of this
 repository; each commit's SHA is an anchor for the revision it
-contains. The first revision is commit
-`0b2f2860ec2d02ea081396c25d46e5f9de4cd20c`.
+contains. Revisions: r1 `0b2f2860` (initial claims); r2
+`c8ad70b` (audit shadow and serve-refit measured); r3 (this
+commit: the training-side leg measured at small scale - all
+three prediction parts carry measurements).
 
 ## Claims
 

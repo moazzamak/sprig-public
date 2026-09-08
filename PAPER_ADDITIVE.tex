@@ -1160,13 +1160,18 @@ measured: a closed-form refit of the network's own readout on
 the stream it actually produces, on a never-converted network,
 left the readout at least as good on the registered slice
 (perplexity 14.759 to 14.726), the serve-refit law detached
-from the conversion. The second remains a prediction: local
-least-squares targets can
-be inserted into training itself, the layerwise and fast-weight
+from the conversion. The second is now measured at small
+scale: local least-squares targets inserted into training
+itself, the layerwise and fast-weight
 lineage \cite{schmidhuber1992, fahlman1990, ba2016, irie2021},
-so that a trained network's patches acquire measured contracts
-as they are learned. This report states the prediction with its
-instruments named, the same discipline as the capabilities above:
+gave a trained network's patches measured contracts as they
+were learned, at parity-or-better held-out quality once the
+target weight was large enough to matter (a small effect,
+measured on a word-level ladder), so that a trained network's
+patches acquire measured contracts as they are learned. All
+three parts of the prediction are thus measured at their
+registered scales, with the instruments named, the same
+discipline as the capabilities above:
 the per-patch instruments attach to any network; what requires
 the conversion is the frozen stage's closed-form lifetime, not
 the measurement.
