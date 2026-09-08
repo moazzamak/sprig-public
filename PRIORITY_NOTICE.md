@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`e5bf67dfd41b76c1c336188f30663a63132314aaa714b930bc13cf39d2e1da84`),
+`411669709b87a4b46cfc88d3e5acd2210ed7729f38c0ed9aa22e06d6b8937be3`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -22,10 +22,11 @@ three prediction parts carry measurements); r4 `9b84fcd`
 (abstract states the port-back to unconverted networks;
 span-level r2 and intervention evidence sealed); r5 `d6ad73c`
 (the data-starvation sentence measured - starved vs hard
-patches separated on the audited network); r6 (this commit:
-pre-wormhole measurement marking pass - the old-system
-serving measurements are flagged in the whitepaper for
-re-measurement on the final methodology; claims unchanged).
+patches separated on the audited network); r6 `bc627ba`
+(pre-wormhole measurement marking pass; claims unchanged); r7
+(this commit: the fifteen-layer wormhole chain's decode battery
+and zero-shot gate are measured and pass - the pending marker
+becomes a result; RS-5 evidence sealed).
 
 ## Claims
 

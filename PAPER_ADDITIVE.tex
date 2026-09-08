@@ -931,9 +931,14 @@ layers, and
 the refresh changes the dense set at five layers and recovers about
 a quarter of the raw gap. The wormhole chain
 sits 0.26 away from the teacher over the fifteen-layer span with
-no repair beyond the census.
-\pending{The decode battery and the zero-shot accuracy gate on the
-fifteen-layer wormhole chain are not yet measured.}
+no repair beyond the census. Both serving gates pass on the
+fifteen-layer chain. The decode battery is clean: all five
+continuation prompts decode to coherent prose and the four
+instructed multiple-choice suites answer at or above the
+teacher. The binding zero-shot read scores 0.5898 against the
+in-run teacher's 0.5938 on the same 256-question sample, one
+question apart with no subject collapse, the chain leading on
+clinical knowledge and tying world religions.
 
 Teacher-forced perplexity is necessary and not sufficient. A
 serving form can match the teacher under teacher forcing and
@@ -1530,9 +1535,10 @@ The limits are stated as precisely as the capabilities.
     against dense attention is not yet measured. The decode
     battery is a sampled stability check alongside teacher-forced
     perplexity, not a proof that every prompt decodes well, and it
-    has run on the four-layer chain only. The fifteen-layer chain
-    has its perplexity number and awaits the battery and the
-    accuracy gate.
+    has run on the four-layer chain and the fifteen-layer body
+    chain. The fifteen-layer body chain passes the battery and
+    scores 0.5898 against the teacher's 0.5938 on the binding
+    read, a one-question difference with no subject collapse.
 
 % ==================================================================
 \section{Integration into GEODE}
