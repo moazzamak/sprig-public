@@ -20,6 +20,12 @@
 \sethlcolor{yellow}
 \newcommand{\pending}[1]{%
   \textcolor{red}{\textbf{[PENDING MEASUREMENT]}}~\hl{#1}}
+% Pre-wormhole serving-system measurements, highlighted so they
+% can be re-measured on the final methodology (frozen-key stages
+% with retrieval-wormhole attention, not native attention).
+\newcommand{\oldsystem}[1]{%
+  {\sethlcolor{orange!25}\textcolor{orange}{\textbf{[PRE-WORMHOLE SYSTEM]}}~\hl{#1}}%
+  \sethlcolor{yellow}}
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta, fit}
 \usepackage[hidelinks]{hyperref}
@@ -76,18 +82,18 @@ exactly on held-out rows ($R^2$ 1.0). A basis diagnosis shows why
 this is the one basis that can fit them: the layer's function
 varies along its 9,728 key directions, and bases that miss those
 directions top out near a third of the explained variance. Key
-attribution compresses the stages, and a depth-adaptive budget
+attribution compresses the stages, and \oldsystem{a depth-adaptive budget
 serves all thirty-six feed-forward layers at battery parity with
-the teacher. Attention becomes a retrieval carrier that keeps the
+the teacher}. Attention becomes a retrieval carrier that keeps the
 attention sink, a local band, and routed key clusters exact; four
 such carriers score 17.36 perplexity against the teacher's 17.28
-and pass the free-generation battery. At full keys with
+and pass the free-generation battery. \oldsystem{At full keys with
 native-dtype stage compute the converted network scores exactly
 the teacher's zero-shot accuracy, 0.5938 against 0.5938 on the
 same 256-question sample; the serving form, 0.89 of the key count
 with the serve-refit applied, scores 0.5547 on the same read,
 with the free-generation battery clear and the perplexity guard
-holding.
+holding.}
 
 No prior work converts a pretrained network into nonlinear
 closed-form stages that keep exact attribution, deterministic
@@ -97,9 +103,9 @@ least-squares linear maps for compression and claims none of
 those properties; the transcoder line gives additive attribution
 but trains its replacement and does not serve it. Every borrowed
 part is cited, and where a neighbouring method does something
-better, its adoption is planned and named. Full conversion, all
+better, its adoption is planned and named. \oldsystem{Full conversion, all
 thirty-six layers, is measured and holds the battery at 0.89 of
-the key count. The benefits also port back to unconverted,
+the key count.} The benefits also port back to unconverted,
 conventionally trained networks: the same closed-form reads give
 a trained network's patches measured per-layer contracts without
 any conversion, an audit shadow that matches across devices
@@ -716,6 +722,11 @@ thirty-six layers, and the measured form stages the feed-forward
 network of every layer, from the first to the thirty-sixth, with
 native attention everywhere; the retrieval wormholes of
 Section 6.4 are the separate attention-side conversion. The
+\textcolor{orange}{\textbf{[highlight convention: passages in
+orange were measured on the pre-wormhole serving system,
+feed-forward stages with native attention everywhere; they are
+re-measured on the final methodology, staged feed-forward
+networks with retrieval-wormhole attention.]}} The
 frontier moved through one diagnosis, the stage's basis: the
 layer's function varies along its own 9,728 key directions, and
 the frozen teacher-key stage of Section 6.1 is the one basis that
@@ -753,32 +764,32 @@ variance unexplained. The frozen-key stage is the one basis whose
 error is zero, and its readout is refittable in closed form
 wherever the served stream differs from the fit stream.
 
-Replacing the top layer's attention with a pointwise stage costs
+\oldsystem{Replacing the top layer's attention with a pointwise stage costs
 $+0.18$, so the difficulty of predicting attention at the state
 level does not translate into serving cost at the top. A dictionary
 read replaces attention with a fixed projection to 128 keys and a
 softmax read over the last 200 states. It scores 15.38
 teacher-forced, below the teacher's own 17.28, while keeping a 100
 kilobyte working set in place of a growing key-value cache;
-removing the top attention entirely scores 15.49. The reading is
+removing the top attention entirely scores 15.49.} The reading is
 that the top layer's attention is calibrated for long context, and
 under the short-context convention of this instrument it is net
 harmful for next-word probability, so any replacement that keeps
 the pointwise part wins on that metric. Perplexity is therefore
-not the gate. Under free generation the converted forms stay
+not the gate. \oldsystem{Under free generation the converted forms stay
 coherent for five hundred sampled tokens and their hidden states
-stay inside the teacher's manifold band. That closed-loop check is
+stay inside the teacher's manifold band.} That closed-loop check is
 the gate every serving form must pass, because a teacher-forced
 win can coexist with a collapse under self-feedback; the decode
 battery of Section 6.4 is its serving form.
 
 Context length decides where the wall sits. Over spans of four
 thousand tokens the teacher improves from 17.63 to 11.15
-perplexity, so attention does real work in the long regime. The
+perplexity, so attention does real work in the long regime. \oldsystem{The
 dictionary read still beats the teacher at every length when it
 replaces one top layer, because long-range information reaches it
 through the real attention of the layers below. When the swap spans
-two layers at once, the replacements stop winning. That is the
+two layers at once, the replacements stop winning.} That is the
 serve-distribution lesson: every stage in a chain must be refit on
 the states its upstream replacements actually produce.
 
@@ -806,32 +817,32 @@ All thirty-six staged layers serve at once. Each stage is fit on
 the teacher stream at its layer, and the layers below alter the
 stream the later stages read. The shift is measured layer by layer
 by scoring each stage's readout on the stream the fully staged
-network actually produces. The shift is real and small: the
+network actually produces. \oldsystem{The shift is real and small: the
 readouts hold $R^2$ 0.88 to 0.96 on the served stream, and a
 serve-refit, one ridge per layer on the served stream with the
-keys frozen, moves every layer up, the deepest layers by 0.027.
+keys frozen, moves every layer up, the deepest layers by 0.027.}
 Two stabilizers belong to the refit as measured, not as choices.
-The ridge is trace-relative at $10^{-4}$: at a weaker ridge the
+\oldsystem{The ridge is trace-relative at $10^{-4}$: at a weaker ridge the
 refit overfits regions the capture rarely visits, regions
 invisible to held-out $R^2$, and the overfit appears under free
 generation as a decode-collapse loop on one continuation prompt.
 Shrinking the refit toward the teacher-stream readout by 0.2
 removes the collapse and improves every layer's held-out $R^2$
-over the unshrunk refit, so the prior is kept. Refitting is the
+over the unshrunk refit, so the prior is kept.} Refitting is the
 registered maintenance image: the stage is one solve away from
 its serving distribution at all times.
 
 The conversion algorithm closes with a fidelity repair pass:
-after all layers convert, every layer below the parity band,
+after all layers convert, \oldsystem{every layer below the parity band,
 held-out $R^2$ 0.90, is escalated one rung up the key ladder and
 the battery re-runs. The band is the measured one: the battery
 held parity wherever layers sat at or above 0.90. Key spending
 beyond the band does not buy accuracy: escalating the three
 layers nearest the band to full keys moved the binding read by
 one question of 256, indistinguishable from noise, so the budget
-stays where the band says.
+stays where the band says.}
 
-The binding gates are closed-loop. The fully converted network
+The binding gates are closed-loop. \oldsystem{The fully converted network
 decodes five continuation prompts to coherent prose with no
 repetition failure; on the instructed multiple-choice battery it
 matches or beats the teacher on all four suites with zero
@@ -847,7 +858,7 @@ exactly the teacher on every subject and every count. The dial
 between the endpoints is smooth, monotone in keys, and every
 point on it keeps the closed-loop properties. The perplexity
 non-regression guard holds on the serving form: 20.70 against
-the teacher's 17.59 in-run, below the registered structural
+the teacher's 17.59 in-run, below the registered structural}
 bar.
 
 The mixture-of-experts sibling, the next conversion target, is
@@ -1485,14 +1496,14 @@ The limits are stated as precisely as the capabilities.
 
 8. The conversion numbers are one teacher, one corpus, one
    evaluation convention, and all thirty-six feed-forward layers
-   staged with native attention everywhere. At 0.89 of the key
+   staged with native attention everywhere. \oldsystem{At 0.89 of the key
    count with the serve-refit applied the converted network is
    usable but not competitive: the binding zero-shot read sits
    3.9 points below the teacher, concentrated in the mathematics
    subjects, and closing that deficit beyond the measured key
-   ladder is open. At full keys with native-dtype stage compute
+   ladder is open.} \oldsystem{At full keys with native-dtype stage compute
    the network matches the teacher exactly on the binding read,
-   at native-scale compute. The perplexity non-regression guard
+   at native-scale compute.} The perplexity non-regression guard
    holds at the registered coarse bar, and the decode battery is
    a sampled stability check, not a proof that every prompt
    decodes well. Zero-shot accuracy is read on the converted
@@ -1572,10 +1583,10 @@ scratch at toy scale, and converts a pretrained model's
 feed-forward stages into frozen teacher-key stages read out by one
 ridge solve, reproducing the layer exactly on held-out rows, with
 mid-model attention replaced by retrieval wormholes that do not
-compound and a fully converted network, all thirty-six
+compound and \oldsystem{a fully converted network, all thirty-six
 feed-forward stages, that passes the closed-loop battery at 0.89
 of the key count and, at full keys, scores exactly the teacher's
-zero-shot accuracy.
+} zero-shot accuracy.
 Attribution and replay hold everywhere by construction.
 The negative results are part of the design: growth by re-solving
 drifts, un-gated summation extrapolates, and any basis that omits
