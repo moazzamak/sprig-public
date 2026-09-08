@@ -1177,7 +1177,14 @@ it: its activations were recorded, per-layer frozen-key
 surrogates were fitted on them in closed form, and per-patch
 error, coverage, and novelty were read against the original
 weights, an audit shadow that left training untouched and whose
-per-layer readings matched across devices exactly. The same
+per-layer readings matched across devices exactly. The shadow
+transfers across modalities: on a trained vision transformer, a
+six-block ViT scoring 77.3 percent on CIFAR-10, the same
+frozen-key read fitted from each MLP block's own input stream
+reproduces every block at held-out $R^2$ 1.0, and substituting
+all six blocks with their stages leaves test accuracy exactly
+the network's own, the conversion exactness reproduced on a
+second modality at toy scale. The same
 logic yields two stronger integrations. The first is now
 measured: a closed-form refit of the network's own readout on
 the stream it actually produces, on a never-converted network,
