@@ -1155,11 +1155,13 @@ surrogates were fitted on them in closed form, and per-patch
 error, coverage, and novelty were read against the original
 weights, an audit shadow that left training untouched and whose
 per-layer readings matched across devices exactly. The same
-logic yields two stronger integrations, which remain
-predictions. A per-layer
-closed-form refit on the stream a network actually produces is a
-maintenance step available to any network, the serve-refit law
-detached from the conversion. And local least-squares targets can
+logic yields two stronger integrations. The first is now
+measured: a closed-form refit of the network's own readout on
+the stream it actually produces, on a never-converted network,
+left the readout at least as good on the registered slice
+(perplexity 14.759 to 14.726), the serve-refit law detached
+from the conversion. The second remains a prediction: local
+least-squares targets can
 be inserted into training itself, the layerwise and fast-weight
 lineage \cite{schmidhuber1992, fahlman1990, ba2016, irie2021},
 so that a trained network's patches acquire measured contracts

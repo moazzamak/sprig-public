@@ -6,12 +6,17 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`6994fbc834ddfd4153d965bd43d1e5bb3e589fc477836d148310e94ed731d07c`),
+`d4160b583ee7cd08a31492ffd890b04c27018f3ea44a5bf6e6e8368ca5ecb0f3`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
 publication schedule; the hashes bind any later disclosure to
 this date.
+
+Amendments are recorded as subsequent commits of this
+repository; each commit's SHA is an anchor for the revision it
+contains. The first revision is commit
+`0b2f2860ec2d02ea081396c25d46e5f9de4cd20c`.
 
 ## Claims
 
