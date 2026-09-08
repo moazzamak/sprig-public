@@ -1183,7 +1183,10 @@ six-block ViT scoring 77.3 percent on CIFAR-10, the same
 frozen-key read fitted from each MLP block's own input stream
 reproduces every block at held-out $R^2$ 1.0, and substituting
 all six blocks with their stages leaves test accuracy exactly
-the network's own, the conversion exactness reproduced on a
+the network's own; the key-attribution ladder compresses it,
+0.7722 at three quarters of the keys, 0.7695 at half, 0.7519
+at a quarter, and 0.7235 at an eighth against the teacher's
+0.7732, the conversion exactness reproduced on a
 second modality at toy scale. The same
 logic yields two stronger integrations. The first is now
 measured: a closed-form refit of the network's own readout on
