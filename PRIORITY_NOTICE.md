@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`fdf4f1f58066a76a999eef506f81f28c17fbc18fde3abf419a591a14b040c622`),
+`68d5601b858aeeeb06f01796779da81230be088e1f0551f92f1f901b0b236693`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -30,10 +30,14 @@ becomes a result; RS-5 evidence sealed); r8 `258aa6e` (the
 conversion instruments measured on a second modality - a
 trained ViT's MLP blocks reproduce at R2 1.0 and substituting
 all six leaves CIFAR-10 accuracy exactly the network's own;
-GC-V1/GC-V2 evidence sealed); r9 (this commit: the vision
+GC-V1/GC-V2 evidence sealed); r9 `bf4bb1c` (the vision
 key-attribution ladder measured - 0.7722 / 0.7695 / 0.7519 /
 0.7235 at 3/4, 1/2, 1/4, 1/8 keys against 0.7732; GC-V3
-evidence sealed).
+evidence sealed); r10 (this commit: the closed-form field
+classifier bounded - 36.1 percent against the convnet's 56.4
+at matched parameters across all four registered levers;
+known-limit 12 states the bound; V-E1 series evidence
+sealed).
 
 ## Claims
 

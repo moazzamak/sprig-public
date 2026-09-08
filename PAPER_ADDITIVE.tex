@@ -1550,6 +1550,21 @@ The limits are stated as precisely as the capabilities.
     scores 0.5898 against the teacher's 0.5938 on the binding
     read, a one-question difference with no subject collapse.
 
+12. The closed-form field classifier is measured and bounded.
+    The ellipsoid-mixture idea, fields over pixel coordinates
+    evaluated instead of convolutions, was tested at matched
+    parameters on CIFAR-10: per-class soft-density mixtures over
+    position and color score 36.1 percent against a converged
+    parameter-matched convnet's 56.4, and none of the registered
+    construction levers (a closed-form discriminative readout,
+    patch-relative coordinates, patch descriptors) recovers the
+    gap; the descriptor form is shift-robust, with no shifted-
+    test drop, but capacity-bound at this scale. The vision
+    deliverable is therefore the conversion track: a trained
+    vision transformer's MLP blocks reproduce at held-out $R^2$
+    1.0 and substituting all six blocks leaves test accuracy
+    exactly the network's own.
+
 % ==================================================================
 \section{Integration into GEODE}
 % ==================================================================
