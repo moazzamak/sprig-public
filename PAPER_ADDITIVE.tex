@@ -1,0 +1,2188 @@
+\documentclass[11pt]{article}
+
+% ------------------------------------------------------------------
+%  Additive Networks
+%  One closed-form additive construction measured on three tracks:
+%  signed-distance fields, language from scratch, and conversion of
+%  a pretrained model. Merged record of the former field and
+%  language research papers (overlap had grown significant).
+%  Moazzam Abdullah Khan
+%  Compiled with Tectonic (XeTeX), run twice for references.
+% ------------------------------------------------------------------
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{soul}
+\sethlcolor{yellow}
+\newcommand{\pending}[1]{%
+  \textcolor{red}{\textbf{[PENDING MEASUREMENT]}}~\hl{#1}}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, fit}
+\usepackage[hidelinks]{hyperref}
+\usepackage{microtype}
+\DeclareMathOperator{\argmax}{arg\,max}
+\DeclareMathOperator{\softmax}{softmax}
+
+\hypersetup{
+  pdftitle={Additive Networks: Fields, Language, and Conversion},
+  pdfauthor={Moazzam Abdullah Khan},
+  pdfsubject={One closed-form additive construction measured on
+    three tracks}
+}
+
+\title{\bfseries Additive Networks\\[0.4em]
+\large One closed-form additive construction measured on fields,
+language from scratch, and the conversion of a pretrained model}
+\author{Moazzam Abdullah Khan\\[0.4em]
+\large \href{https://github.com/moazzamak}{github.com/moazzamak}}
+\date{September 7, 2026}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+A trained deep network is one opaque object. No standard method
+says which training example produced which part of an output, so a
+contribution cannot be priced; two trained networks cannot be added
+into a better one; and new data means retraining the whole. This
+report describes additive networks --- the family this report names
+SprigFields, a working name --- in which every stage is a frozen
+basis read out by one ridge regression, a regularized linear
+least-squares solve, the same calculation as fitting a line through
+points, in high dimension. Nothing is trained at use time, replay
+is bit-identical, and every output is a literal sum whose terms can
+be attributed. A network is grown from scratch one frozen stage at
+a time, or converted from a pretrained model by replacing its parts
+with fitted stages at serve time.
+
+The construction is measured on three tracks. On signed-distance
+fields, the standard continuous description of a shape, it beats a
+small trained residual network on every real shape where that
+network converges, at less than half its error, and sits a median
+15 percent behind a converged DeepSDF-class network. On word-level
+language at toy scale, a model grown stage by stage with no
+pretrained teacher reaches 151.6 perplexity against a Kneser-Ney
+floor of 215.1 on the same split, where perplexity is the
+exponentiated average surprise on held-out text and lower is
+better. On conversion, the feed-forward layers of Qwen3-4B become
+frozen teacher-key stages: a layer's own gate and up directions
+kept as keys, read out by one ridge solve, reproducing the layer
+exactly on held-out rows ($R^2$ 1.0). A basis diagnosis shows why
+this is the one basis that can fit them: the layer's function
+varies along its 9,728 key directions, and bases that miss those
+directions top out near a third of the explained variance. Key
+attribution compresses the stages, and a depth-adaptive budget
+serves all thirty-six feed-forward layers at battery parity with
+the teacher. Attention becomes a retrieval carrier that keeps the
+attention sink, a local band, and routed key clusters exact; four
+such carriers score 17.36 perplexity against the teacher's 17.28
+and pass the free-generation battery. At full keys with
+native-dtype stage compute the converted network scores exactly
+the teacher's zero-shot accuracy, 0.5938 against 0.5938 on the
+same 256-question sample; the serving form, 0.89 of the key count
+with the serve-refit applied, scores 0.5547 on the same read,
+with the free-generation battery clear and the perplexity guard
+holding.
+
+No prior work converts a pretrained network into nonlinear
+closed-form stages that keep exact attribution, deterministic
+replay, growth by addition, and composition under a measured gate.
+The nearest line replaces pruned transformer blocks with
+least-squares linear maps for compression and claims none of
+those properties; the transcoder line gives additive attribution
+but trains its replacement and does not serve it. Every borrowed
+part is cited, and where a neighbouring method does something
+better, its adoption is planned and named. Full conversion, all
+thirty-six layers, is measured and holds the battery at 0.89 of
+the key count. The negative results that
+decided the architecture are published with the positives.
+\end{abstract}
+
+\tableofcontents
+
+% ==================================================================
+\section{Introduction}
+% ==================================================================
+
+This work feeds GEODE, a network of frozen models and small
+deterministic programs whose contributions are priced by measured
+use, composed on demand, and replayed bit for bit
+\cite{whitepaper}. The network family measured here is named
+SprigFields, a working name; in formal prose, a residual field
+network. Its models are built from named, versioned blocks, and
+each block's value is computed by an exact, replayable
+construction rather than by an opaque training run. A trained deep
+network does not fit that discipline. It is one object: no standard
+method asks which part of the output a given training example
+produced, so a contribution cannot be priced. Two trained networks
+cannot be added into a better one, so composition is unavailable.
+When new data arrives the whole network is retrained, so growth is
+a global event rather than a local addition. This is the state of
+the art as the report is written, not a claim about what deep
+networks can never do.
+
+The report measures one additive construction against that
+background, on three tracks. The field track fits signed-distance
+fields, the standard continuous description of a shape, as a global
+carrier plus frozen libraries of local corrections. The language
+track trains an additive language model from scratch, with no
+pretrained teacher, at toy scale. The conversion track takes a
+pretrained language model and replaces its internal parts with
+fitted additive stages at serve time. The scales differ on
+purpose. The field and language tracks establish the construction
+on small instruments; the conversion track is the serious-scale
+experiment, one pretrained model converted, with mixture-of-experts
+conversion as the next step. The three tracks share one core,
+given in Section 2: a frozen basis read out by one regularized
+linear solve, and the track-specific realizations that keep it
+small and fast in high dimension, the ellipsoid mixture in
+Section 2.2 and the frozen teacher-key stage in Section 6.1.
+
+The wager is that an additive model built from closed-form solves
+and frozen parts can stay within a bounded factor of a trained
+baseline on raw quality while keeping the four properties a network
+economy needs: exact attribution, deterministic replay, growth by
+addition, and composition under a measured gate. The report
+measures that wager on fixed instruments, records which lever moved
+which rung, and states the boundary of every result, including the
+places where a property fails and the measured reason.
+
+Two metrics recur. Perplexity is the exponentiated average negative
+log probability a model assigns to held-out text; lower is better,
+and a value of $k$ means the model is about as surprised as a die
+with $k$ equally likely faces. The language track reports
+\emph{word} perplexities on word-tokenized text, which are not
+comparable to the subword perplexities of modern tokenized models;
+the conversion track reports subword perplexities on one model,
+Qwen3-4B. Near-surface error is the root mean squared error of a
+field inside a band around the true surface. Every number is
+attached to its instrument in the section that reports it.
+
+% ==================================================================
+\section{The shared construction core}
+% ==================================================================
+
+\subsection{One closed-form additive stage}
+
+The common form of every stage in this report is a literal sum,
+\begin{equation}
+f(x) \;=\; \sum_{k=1}^{K} w_k\,\phi_k(x),
+\label{eq:stage}
+\end{equation}
+where the $\phi_k$ are columns of a frozen basis and the weights
+$w$ come from one ridge regression, a regularized linear
+least-squares solve \cite{hoerl1970},
+\begin{equation}
+w \;=\; \bigl(\Phi^\top \Phi + \lambda I\bigr)^{-1} \Phi^\top y,
+\label{eq:ridge}
+\end{equation}
+with the penalty $\lambda$ chosen by deterministic holdout
+cross-validation: hold out a seeded slice, solve on the rest for
+each candidate, keep the best. Random features combined with a
+closed-form linear solve are the random-feature and
+extreme-learning-machine recipe \cite{rahimi2007, cho2026}. Use
+is a single evaluation: no optimizer runs at deployment, and the
+same inputs with the same seed produce the same output bit for
+bit. A stage is frozen before any later stage is fitted on its
+residual, the part of the target it left unexplained, so growth is
+addition, never re-solving. Every later section inherits this one
+rule: one ridge over a frozen basis with a cross-validated
+penalty.
+
+\subsection{The kernel realization: ellipsoid mixtures}
+
+A radial-basis stage stores a cloud of centers and evaluates a
+radial sum over it. The cloud is a density estimate, and it cannot
+be thinned as a cloud: deleting centers deletes density mass, and
+the stage collapses even when the kernel width is recomputed on the
+survivors. The working form is a formula instead. An ellipsoid is a
+stretched sphere with a center, a spread along every direction, and
+a Gaussian profile. The cloud is summarized as a mixture of $M$
+ellipsoids: each gets a center by clustering and a diagonal spread
+from its members, and the spread is inflated by the feature
+dimension $D$,
+\begin{equation}
+\phi_m(x) \;=\; \exp\Bigl(-\sum_{d=1}^{D}
+  \frac{(x_d - \mu_{m,d})^2}{2\,D\,\sigma_{m,d}^2}\Bigr),
+\label{eq:ellipsoid}
+\end{equation}
+because in high dimension a diagonal Gaussian's own members sit
+about $D/2$ in squared Mahalanobis distance from its center, and an
+uninflated kernel underflows to zero at its own center. One
+closed-form solve folds the mixture into the readout. Two fit
+targets were measured, and they differ sharply. Matching the
+cloud's kernel matrix at the stored points hits a U-shaped limit:
+past roughly a thousand ellipsoids the atoms narrow into spikes
+that reproduce the stored points perfectly and the space between
+them badly. Fitting the readout directly on the stage's training
+targets removes the U. The rule that transfers to every track:
+fit the readout on targets, never re-project a kernel matrix.
+
+The mixture carries a level-of-detail ladder for free. Every
+mixture size from $M=64$ to $M=4096$ scores within 0.034 perplexity
+of the full cloud when the readout is target-fit, so one stored
+artifact serves a coarse cheap evaluation or a fine one at the same
+quality, and the evaluation budget selects the level. Later
+sections use this form wherever a radial kernel would otherwise
+appear.
+
+\subsection{The property set}
+
+Four properties are measured separately from raw quality, because
+they are what make a construction usable as a network mechanism.
+Attribution asks whether the contribution of each part can be
+measured and priced. Replay asks whether the artifact is
+bit-identical on every run. Growth economy asks whether new data
+can add parts without disturbing the accounting of old ones.
+Composition asks whether two independently built artifacts add into
+a better one. The outcome differs by regime and is reported where
+each is measured. In short: attribution and replay hold everywhere
+by construction; growth by a frozen stage holds and growth by
+re-solving one growing code does not; un-gated summation of
+accurate stages fails, and region-gated summation composes.
+
+% ==================================================================
+\section{Fields: the construction}
+% ==================================================================
+
+A signed-distance field stores, at every point, the distance to the
+nearest surface point, signed inside or outside; the zero set is
+the surface itself. The field form this track produces is
+\begin{equation}
+f(x) \;=\; g(x) \;+\; \sum_{k=1}^{K} w_k\,\phi_k(x)
+  \;+\; \sum_{m=1}^{M} u_m\,\psi_m(x),
+\label{eq:field}
+\end{equation}
+a global carrier $g$, a frozen symbol library read out by one
+ridge, and a second, finer frozen library fitted to what the first
+stage leaves behind, with the first stage frozen and never
+re-solved. The weighted sum of localized bumps is Blinn's additive
+implicit-surface construction \cite{blinn1982}, and the
+coarse-then-fine structure is the two-level geometry of Pan and
+Skala \cite{pan2011}.
+
+\subsection{The carrier}
+
+The signed distance to any compact shape grows linearly far away,
+with slope one, and a sum of decaying bumps cannot represent that.
+The carrier is the coarse global term: its center is the mean of
+all training points and its radius is the least-squares fit over
+the far-field points, giving $g(x) = \|x - c\| - R$. The residual
+the library must fit is $r_i = y_i - g(x_i)$, bounded by the
+shape's spread. The two-level structure descends from Carr et
+al.~\cite{carr2001} and Ohtake et al.~\cite{ohtake2003}.
+
+\subsection{The symbol library}
+
+Each symbol is an affine block anchored at a surface point: a
+windowed level bump and a windowed slope ramp in a normal
+direction, the first-order Taylor model of a signed distance near a
+surface, which is exactly a ramp. A symmetric bump can fit only the
+level; the slope column is the difference between the affine block
+and plain Gaussian bumps. Blocks are random and seeded: centers
+drawn from the training surface band with probability proportional
+to the residual magnitude, so capacity is allocated where the
+carrier leaves the most error, the placement rule of boosting
+\cite{friedman2001} and greedy dictionary pursuit
+\cite{mallatzhang1993}, applied to a whole library solved in one
+joint ridge rather than greedily. Random symbols beat a learned
+library severalfold on the reference instrument, in line with the
+random-feature construction \cite{rahimi2007} and against the
+dictionary-learning baselines \cite{aharon2006, mairal2010}.
+
+\subsection{The joint solve and the regularization}
+
+The weights come from the single ridge of Equation~\ref{eq:ridge},
+with the penalty cross-validated over a fixed grid. The penalty is
+the single largest accuracy lever of the field track, and the
+mechanism is the closed-form analog of grokking \cite{nanda2023}:
+the random library is overparameterized and contains both the
+memorizing and the generalizing solutions, and the cross-validated
+penalty, the analog of weight decay, selects the generalizing one.
+A fixed tiny penalty left a measured 1.3 times gap to the trained
+net; cross-validating it closed the gap. The lesson: overparameterize
+the library and regularize it, do not shrink it.
+
+\subsection{The second stage and the weighted solve}
+
+One global ridge leaves a structured near-surface residual that
+sharper windows at a fixed count cannot fix, because narrow bumps
+tile a surface worse than broad ones. Two properties of the solve,
+not of the basis, close most of the gap. The first is a second
+stage: a sharper frozen library fitted by a second ridge to the
+first stage's residual. The second is a weighted solve: the
+second-stage ridge weights training points inside the evaluation
+band four times those outside, because the metric that matters is
+near-surface error. Both stages keep the field a literal sum and
+the use-time path a single evaluation.
+
+\subsection{The register-conditioned variant}
+
+The register bank is the closed-form analog of the coordination
+registers of Darcet et al.~\cite{darcet2023}: the top-$k$
+singular-value directions of the training near-surface cloud,
+fitted in closed form and frozen. Every query reads back its
+coordinates in that frame, and the correction basis is the affine
+library modulated by the readout, solved by the same single ridge.
+The modulation conditions each local patch on where it sits in the
+global shape. The register-conditioned first stage beats the plain
+first stage on 30 of 40 shape-and-budget rows of the real
+instrument, and the register block is part of the recipe on that
+count. A trained latent-conditioned readout over the frozen library
+fits a shape from a previously unseen class by one linear solve,
+within 1.3 times of per-shape fit-once on seven of eight held-out
+classes at the few-shot budget.
+
+\subsection{The trained baselines}
+
+The accuracy bar is a deep residual network, twenty blocks of
+Linear--Tanh--Linear with residual connections at width 96,
+trained with Adam \cite{adam2015}, mean-squared-error loss, and
+weight decay, on the same data \cite{he2016}. The stronger bar is a
+converged DeepSDF-class network \cite{park2019}, a ReLU stack of
+three hidden layers of width 512 trained per shape to a convergence
+floor. A shape where a trained network stays above its floor is
+excluded from that network's comparison, never counted as a win for
+the closed form.
+
+% ==================================================================
+\section{Fields: results}
+% ==================================================================
+
+\subsection{The instrument}
+
+The primary instrument is a synthetic 12-ellipsoid cluster with the
+exact Euclidean signed distance as ground truth, 6{,}000 training
+and 4{,}000 held-out points. Three metrics are recorded:
+near-surface RMSE inside the surface band, the primary metric;
+zero-set agreement, the fraction of near-surface points whose sign
+is correct; and full-field RMSE, dominated by the far field. The
+real-data instrument is ModelNet10 and ModelNet40, described in
+Section 4.6.
+
+\subsection{The construction space and the equivalence result}
+
+The cell index names every construction family: B, fixed-basis
+cells; C, adaptive or coordinated cells; D, cells over a frozen
+symbol library; T and DS, trained baselines. Three readings from
+the construction space matter. A pure bump sum over a zero coarse
+field reaches 0.290 near-surface error but breaks the far field at
+1.347 full-field RMSE, because bumps decay. The carrier cell fixes
+the far field at 0.245 but trades near-surface accuracy. The
+trained residual net dominates at 0.055 near and 0.987 zero-set.
+The gap is tooling, not representation: a joint least-squares
+solve over the whole basis, which is exactly what a linear readout
+is, cut near-surface error from 0.290 to 0.174, and adding global
+random Fourier features gave the best far field of any closed-form
+construction at 0.164. The remaining roughly 3 times gap is the
+value of learned basis functions, and neither adaptive primitive
+families nor coordination registers closed it.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcccc}
+\toprule
+Cell & Near & Zero-set & Full & Ratio vs T3 \\
+\midrule
+B1 \;\; greedy bumps           & 0.290 & 0.905 & 1.347 & 5.27 \\
+B5 \;\; joint bumps            & 0.174 & 0.899 & 1.127 & 3.16 \\
+B6 \;\; joint bumps + Fourier  & 0.187 & 0.865 & \textbf{0.164} & 3.39 \\
+T1 \;\; small MLP              & 0.151 & 0.933 & 0.110 & 2.75 \\
+T2 \;\; plain deep             & 0.167 & 0.905 & 1.136 & 3.04 \\
+T3 \;\; deep residual          & \textbf{0.055} & \textbf{0.987} & 0.054 & 1.00 \\
+\bottomrule
+\end{tabular}
+\caption{The equivalence result. Joint least squares (B5) closes
+most of the gap; a global Fourier basis (B6) fixes the far field.}
+\label{tab:equivalence}
+\end{table}
+
+\subsection{The regularization lever}
+
+Two cells completed the accuracy story. D2, a frozen random
+library of 178 affine symbols read out by one joint ridge with a
+fixed small penalty, reaches 0.073 near-surface error, 1.32 times
+the trained net, verified across four seeds. D3 adds the carrier
+and the cross-validated penalty, with library centers
+importance-sampled by residual magnitude, and reaches 0.0486 near
+and 0.052 full-field against the trained net's 0.0551 and 0.054.
+This is the single-stage construction that beats the trained deep
+residual net on both metrics with one deterministic ridge solve and
+no training. The 3 to 8 times wall was a hyperparameter.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lccc}
+\toprule
+Cell & Near & Full & Ratio vs T3 (near) \\
+\midrule
+D2 \;\; random library, fixed lambda & 0.073 & 0.136 & 1.32 \\
+D3 \;\; carrier + weighted library + CV lambda & \textbf{0.0486} & \textbf{0.052} & \textbf{0.88} \\
+T3 \;\; trained deep residual & 0.0551 & 0.054 & 1.00 \\
+\bottomrule
+\end{tabular}
+\caption{The regularization lever: cross-validated ridge lambda on
+top of the carrier and the random library beats the trained net.}
+\label{tab:d3}
+\end{table}
+
+\subsection{Synthetic transfer}
+
+One shape family and one regime is not a result, so D3 was
+re-measured across eight configurations: shape families with 5, 12,
+and 20 primitives; an elongated family; a sparse family; the
+small-data regime at 1{,}500 points; high input noise; and partial
+observation, where surface samples come from half the primitives
+and the model must infer the unseen half. D3 beats the trained
+residual net on near-surface error in all eight configurations, at
+ratios 0.73 to 0.91.
+
+\subsection{Real data: ModelNet10 and ModelNet40}
+
+The construction was tested on 59 real meshes from two standard
+benchmarks, using the true signed distance to each mesh in a
+near-surface band of 0.1 times the normalized extent, at 6{,}000
+training points per shape. Four fields are fit per shape: the first
+stage alone (D3), the two-stage weighted recipe (D3+), the trained
+residual net (T3), and the DeepSDF-class network (DS), the trained
+arms counted only where they reach their convergence floor. The
+residual net reaches the floor on 23 of 59 shapes; the DeepSDF
+network on 53 of 59.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llcccc}
+\toprule
+Comparison & Dataset & Converged & Strict & Within & Median \\
+           &         & shapes    & wins   & 1.3$\times$ & ratio \\
+\midrule
+D3+ vs T3 & ModelNet10 & 8  & 8/8   & 8/8   & 0.44 \\
+          & ModelNet40 & 15 & 15/15 & 15/15 & 0.39 \\
+          & All        & 23 & 23/23 & 23/23 & 0.42 \\
+D3 vs T3  & All        & 23 & 22/23 & 23/23 & 0.56 \\
+\midrule
+D3+ vs DS & ModelNet10 & 17 & 6/17  & 14/17 & 1.13 \\
+          & ModelNet40 & 36 & 9/36  & 26/36 & 1.18 \\
+          & All        & 53 & 15/53 & 40/53 & 1.15 \\
+D3 vs DS  & All        & 53 & 0/53  & 3/53  & 1.65 \\
+\bottomrule
+\end{tabular}
+\caption{Real-data transfer on ModelNet10 and ModelNet40,
+near-surface RMSE. D3+ is the two-stage weighted recipe, D3 its
+first stage alone, T3 the trained deep residual net, DS the
+DeepSDF-class network, each trained arm counted only on shapes
+where it reaches the convergence floor.}
+\label{tab:real}
+\end{table}
+
+Within the tested scope of per-shape fitting on real meshes, the
+closed-form construction beats the small deep residual net on every
+shape where that net converges, at less than half its error, and
+sits a median 15 percent behind the converged DeepSDF-class
+network, inside 1.3 times on three quarters of the shapes. The cost
+facts: the operative recipe fits one real shape in about three
+seconds on one CPU core and holds about 82 kilobytes of
+coefficients; a converged DeepSDF network takes seven seconds on a
+GPU and 2.1 megabytes.
+
+\subsection{The property set}
+
+Each property was measured on the D3 construction and re-measured
+where it mattered on the two-stage recipe.
+
+\textbf{Attribution and replay hold.} The field is a literal sum,
+so attribution is exact by construction; the measurement is a
+per-symbol leave-one-out diagnostic on a held-out near-surface
+slice: 130 of 200 symbols have positive attribution, the largest
+single contribution is about 0.00135 and the mean is
+$1.3\times10^{-4}$, a diffuse, priceable structure. The payment
+rule is the network's single Shapley rule \cite{shapley1953},
+applied at the level of whole field codes, never at the level of
+800 symbols inside a code, where an exact Shapley value is not
+computable. Replay is bit-identical by construction and verified
+for every closed-form cell.
+
+\textbf{Growth economy does not hold for the accurate recipe.}
+Growing the D3 library in data windows and re-solving the ridge
+moves old symbol amplitudes by a mean of 2.9 to 10.7 times across
+windows, and up to 1{,}664 times at the maximum, while held-out
+error improves monotonically: the reorganization is the mechanism
+of growth, not an artifact of the solver. The greedy regime has the
+opposite behavior, old blocks frozen and never re-fit, at the
+measured accuracy cost. The two-stage recipe grows by a frozen
+stage and improves near-surface error on every one of 102
+shape-and-budget rows.
+
+\textbf{Composition by un-gated summation fails; region-gated
+summation composes.} Two independent D3 stacks summed un-gated are
+five times worse than either half; a shared scene-level carrier
+does not fix it, because each stack's broad random features
+extrapolate large wrong offsets outside the region they were fitted
+in. The fix is a region gate: each code is multiplied by a
+window that is exactly one within the band of the surface samples
+stored in the code and falls off beyond, so a code is active only
+where it has evidence. On all 13 two-object scenes tested, the
+gated scene covers both objects better than either code alone and
+preserves each object within 1.3 times its single code on 12 of
+13; the one loss is two thin shapes whose corrections leak under
+every gate tested. The boundary of that result is measured: gated
+composition stops preserving each object once the objects overlap,
+once the scene has five codes, or once the gate softens past a
+sharp window; codes whose bounding spheres are separated by at
+least a quarter of their summed radii compose. No window computable
+from the artifact alone does this, so a composable code carries the
+near-surface points it was fitted on, and the data contract covers
+them.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lcc}
+\toprule
+ & Greedy-local (C13) & Joint-accurate (D3) \\
+\midrule
+Near-surface accuracy vs trained net & 4.84$\times$ & 0.42$\times$ (median, converged T3); 1.15$\times$ DeepSDF \\
+Attribution & holds & holds \\
+Replay & holds & holds \\
+Growth economy & holds & fails (drift) for a re-solved code; holds by a frozen second stage \\
+Composition & holds (small gain) & fails (extrapolation) \\
+Composition (region-gated) & -- & holds (12/13 objects preserved, 13/13 covered) \\
+\bottomrule
+\end{tabular}
+\caption{The design tension: the greedy-local regime carries the
+property set at an accuracy cost; the joint-accurate regime beats
+the trained net but loses un-gated composition and the growth
+economy.}
+\label{tab:tension}
+\end{table}
+
+% ==================================================================
+\section{Language from scratch}
+% ==================================================================
+
+The second track asks the training-time question: can the additive
+construction be trained on language from scratch, with no
+pretrained teacher, and still compete? The model is a sum of named
+parts: an embedding table, a content-attention read, an output
+head, and a growth policy that adds arms one at a time.
+
+\subsection{The construction}
+
+Words map to a fixed vocabulary of the twenty thousand most
+frequent training words, each carrying a dense vector of
+forty-eight numbers. The embeddings start from a count-based
+construction, a pointwise mutual information matrix reduced by
+singular-value decomposition and normalized, the classical
+count-based line of distributional semantics \cite{levy2014}. The
+rule throughout is structure first: where a closed-form
+construction exists it is the initialization, and a small gradient
+budget refines it; nothing starts from random weights.
+
+The long-range read is content-addressed attention over a causal
+window of two hundred words, fixed keys and fixed query,
+\begin{equation}
+    f_t \;=\; \sum_{s=t-W}^{t-1}
+        \softmax\!\left(\frac{\cos(e_t, e_s)}{\tau}\right)\, e_{s+1},
+\end{equation}
+which reads the word that followed each relevant prefix position, a
+pattern continuation. This is the fast-weight-programmer idea of
+Schmidhuber \cite{schmidhuber1992}, with the cache and
+nearest-neighbor language-model ancestry \cite{grave2017,
+khandelwal2019}. Two amendments are measured. The keys and query
+are fixed, so content selection needs no learned controller, and it
+beats both a fixed four-word window and a decay reservoir. Recency
+is measured as a null at fixed features, which separates this read
+from positional-bias constructions such as linear-biased attention
+\cite{press2021}.
+
+The head turns features into a probability over the vocabulary.
+The classical likelihood head, a linear softmax with a word
+frequency term added as a bias \cite{bengio2003, mikolov2010},
+initialized at the closed-form solution and refined by the gradient
+budget, is the single largest lever of the track. It takes the
+model from about five hundred word perplexity, the score of a
+regression-to-embedding head on the same frozen features, to parity
+with the classical floor on those same features. A language-model
+readout must state a probability over words; regression to an
+embedding is the wrong function class, and this instrument measured
+that on identical features.
+
+The growth policy is the center of the track. Each phase trains the
+newest arm, meaning its own learned query projection, to its
+validation minimum, freezes it, adds a fresh arm initialized on the
+residual, and re-initializes the head closed-form on the enlarged
+feature set. Growth stops when an added arm cannot lower the
+held-out floor by a fixed margin of three tenths of a percent.
+Adding capacity one unit at a time and freezing it is
+cascade-correlation \cite{fahlman1990}; stopping on a validation
+signal is Prechelt \cite{prechelt1998}; fitting to the residual of
+a frozen ensemble is boosting \cite{friedman2001}; growing on a
+frozen substrate has transformer ancestors \cite{growing2025}. The
+amendments are packaging, each measurable: the unit is a structured
+content-attention arm, not a hidden neuron; each phase starts from
+an exactly re-initialized head; the trigger is the overfit signal
+itself. Two final steps address order dependence. Span order is
+randomized within each phase, and after growth everything is
+unfrozen for a short joint fine-tune at half learning rate, so the
+greedy path is an initialization rather than a permanent
+commitment. The whole model holds about 4.8 million parameters and
+trains in minutes on one GPU.
+
+\subsection{The instrument and the ladder}
+
+The task is word-level language modeling on WikiText-2, training
+capped at two million words, held-out scores on one hundred
+thousand. The classical floor is Kneser-Ney smoothed interpolation
+of order four, measured on this exact split at 215.1
+\cite{kneser1995}; a small gradient-trained window network measures
+315. Every rung is reported at the two-million-word point.
+
+\begin{center}
+\begin{tabular}{lr}
+\toprule
+Model & word ppl \\
+\midrule
+naive atomic n-gram (Laplace with Jelinek-Mercer) & 2365 \\
+whole-prefix decay reservoir (closed form) & 907 \\
+fixed four-word window, plain head & 768 \\
+content attention over 200 words, plain head & 685 \\
+content attention plus frequency-bias head & 500 \\
+gradient-trained window network (baseline) & 315 \\
+Kneser-Ney 4-gram (classical floor, measured) & 215.1 \\
+content-attention features, likelihood head, frozen & 215.4 \\
+single trained content arm (learned embeddings) & 164.8 \\
+joint training of several arms & 163.3 \\
+sequential growth, frozen-root regime & 159.8 \\
+sequential growth, fine-tuned-root regime & 158.5 \\
+growth plus span-order randomization & 154.7 \\
+growth plus randomization plus joint fine-tune & \textbf{151.6} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Five readings follow from the ladder. The head was the wall, not
+the features: the likelihood head with a frequency term moved the
+same frozen features from 500 to 215.4. Content attention works
+with fixed keys: content selection beat both the window and the
+reservoir. Learning the embeddings is what breaks below the
+classical floor. The overfit signal drives growth, and growth beats
+joint training; the termination signal fires after three arms,
+which is the data-limited regime, not a capacity ceiling.
+Randomization and the final refinement both pay, and a pruning pass
+after growth found no arm droppable, so the growth policy stops
+before it adds redundant arms \cite{lecun1990}. The full recipe at
+151.6 sits at 1.42 times under the Kneser-Ney floor and 2.08 times
+under the trained window network, in word perplexity, which is not
+comparable to subword perplexity.
+
+\subsection{The kernel realization in this track}
+
+The ladder above was produced with the dense content features of
+the construction, not with a radial kernel. The ellipsoid-mixture
+form of Section 2.2 applies to every place a radial basis would
+otherwise enter a from-scratch build. \pending{The mixture-basis
+port of this track is not yet measured: rebuilding the arms at
+sixty-four and two hundred fifty-six ellipsoids, on the same
+instrument, and reporting the ladder delta against 151.6 is the
+next measurement.} The rules that already transfer are the ones of
+Section 2.2: fit on targets, never re-project a kernel matrix, and
+take the level-of-detail ladder for free.
+
+% ==================================================================
+\section{The conversion track}
+% ==================================================================
+
+The third track takes a pretrained language model and replaces its
+internal parts with fitted stages at serve time. The teacher is
+Qwen3-4B, an open-weights model of thirty-six layers, evaluated on
+two hundred thousand held-out subword tokens, where it scores 17.28
+perplexity. The design goal is a fully converted network, all
+thirty-six layers, and the measured form stages the feed-forward
+network of every layer, from the first to the thirty-sixth, with
+native attention everywhere; the retrieval wormholes of
+Section 6.4 are the separate attention-side conversion. The
+frontier moved through one diagnosis, the stage's basis: the
+layer's function varies along its own 9,728 key directions, and
+the frozen teacher-key stage of Section 6.1 is the one basis that
+fits it exactly. The compounding that once blocked chained
+conversion disappears with the exact stage; what remains is the
+compression trade of Section 6.2 and the serve-refit of
+Section 6.3.
+
+A transformer layer has two parts. The feed-forward network is
+pointwise: each position is a function of its own vector alone, and
+it holds about three quarters of the layer's parameters. Attention
+is contextual: each position reads the others. The two parts are
+converted by different mechanisms and reported separately.
+
+\subsection{The stage and the basis diagnosis}
+
+A closed-form stage replaces the feed-forward network directly. The
+stage keeps the layer's own gate and up directions as frozen keys:
+key $i$ contributes $h_i = \mathrm{SiLU}(g_i \cdot x)(u_i \cdot
+x)$ over the $9{,}728$ key rows, and one ridge solve reads the
+stage out over $[h \mid x \mid 1]$. Fit on forty thousand
+teacher-stream rows, the stage reproduces the dumped layer on
+twenty thousand held-out rows at $R^2$ 1.0.
+
+Why this basis and no other is a measured answer, not a choice.
+One diagnostic fits layer 32 with four bases under one protocol.
+The layer's own directions reproduce it exactly, 1.0. Linear
+scores 0.32 held-out. A radial basis of eight thousand sample-point
+bumps scores 0.43, and sixteen times the width collapses it back
+to linear. Eight thousand random directional SiLU features fit to
+0.70 but generalize to 0.21, below linear: directionality alone
+overfits. The function lives on the teacher's specific key
+directions, and every basis that omits them leaves most of the
+variance unexplained. The frozen-key stage is the one basis whose
+error is zero, and its readout is refittable in closed form
+wherever the served stream differs from the fit stream.
+
+Replacing the top layer's attention with a pointwise stage costs
+$+0.18$, so the difficulty of predicting attention at the state
+level does not translate into serving cost at the top. A dictionary
+read replaces attention with a fixed projection to 128 keys and a
+softmax read over the last 200 states. It scores 15.38
+teacher-forced, below the teacher's own 17.28, while keeping a 100
+kilobyte working set in place of a growing key-value cache;
+removing the top attention entirely scores 15.49. The reading is
+that the top layer's attention is calibrated for long context, and
+under the short-context convention of this instrument it is net
+harmful for next-word probability, so any replacement that keeps
+the pointwise part wins on that metric. Perplexity is therefore
+not the gate. Under free generation the converted forms stay
+coherent for five hundred sampled tokens and their hidden states
+stay inside the teacher's manifold band. That closed-loop check is
+the gate every serving form must pass, because a teacher-forced
+win can coexist with a collapse under self-feedback; the decode
+battery of Section 6.4 is its serving form.
+
+Context length decides where the wall sits. Over spans of four
+thousand tokens the teacher improves from 17.63 to 11.15
+perplexity, so attention does real work in the long regime. The
+dictionary read still beats the teacher at every length when it
+replaces one top layer, because long-range information reaches it
+through the real attention of the layers below. When the swap spans
+two layers at once, the replacements stop winning. That is the
+serve-distribution lesson: every stage in a chain must be refit on
+the states its upstream replacements actually produce.
+
+\subsection{Stage compression: key attribution}
+
+The full stage stores the layer's own three matrices and costs
+about the same as the network it replaces; its value is the
+properties, not size. Compression is key dropping. Ranked by
+contribution, mean key magnitude times readout norm, the readout
+is refit at each kept-key count; the held-out $R^2$ ladder is 0.92
+at three quarters of the keys, 0.81 at half, 0.64 at a quarter,
+and 0.52 at an eighth, all above the linear floor of 0.32. Random
+dropping underperforms the ranked ladder by 0.08 to 0.19 at equal
+compute, so the ranking is what makes the ladder steep. The
+stages are heterogeneous by depth: deep layers hold 0.95 at a
+quarter of the keys where shallow layers hold 0.64, so a
+depth-adaptive budget, more keys shallow and fewer deep,
+dominates any uniform budget at equal cost. Every rung is a
+sealed pack: the kept key rows, the selection, and the refit
+readout, servable as-is.
+
+\subsection{The chain, the serve-refit, and the battery}
+
+All thirty-six staged layers serve at once. Each stage is fit on
+the teacher stream at its layer, and the layers below alter the
+stream the later stages read. The shift is measured layer by layer
+by scoring each stage's readout on the stream the fully staged
+network actually produces. The shift is real and small: the
+readouts hold $R^2$ 0.88 to 0.96 on the served stream, and a
+serve-refit, one ridge per layer on the served stream with the
+keys frozen, moves every layer up, the deepest layers by 0.027.
+Two stabilizers belong to the refit as measured, not as choices.
+The ridge is trace-relative at $10^{-4}$: at a weaker ridge the
+refit overfits regions the capture rarely visits, regions
+invisible to held-out $R^2$, and the overfit appears under free
+generation as a decode-collapse loop on one continuation prompt.
+Shrinking the refit toward the teacher-stream readout by 0.2
+removes the collapse and improves every layer's held-out $R^2$
+over the unshrunk refit, so the prior is kept. Refitting is the
+registered maintenance image: the stage is one solve away from
+its serving distribution at all times.
+
+The conversion algorithm closes with a fidelity repair pass:
+after all layers convert, every layer below the parity band,
+held-out $R^2$ 0.90, is escalated one rung up the key ladder and
+the battery re-runs. The band is the measured one: the battery
+held parity wherever layers sat at or above 0.90. Key spending
+beyond the band does not buy accuracy: escalating the three
+layers nearest the band to full keys moved the binding read by
+one question of 256, indistinguishable from noise, so the budget
+stays where the band says.
+
+The binding gates are closed-loop. The fully converted network
+decodes five continuation prompts to coherent prose with no
+repetition failure; on the instructed multiple-choice battery it
+matches or beats the teacher on all four suites with zero
+unanswered rows. Zero-shot accuracy, the binding metric, is read
+on the same 256-question sample as the teacher: the serving
+form, 0.89 of the teacher's key count with the serve-refit
+applied, scores 0.5547 against the teacher's 0.5938, and the
+deficit sits in the mathematics subjects while the knowledge
+subjects score at or above the teacher. The deficit is
+compression, not mechanism: at full keys with native-dtype stage
+compute the converted network scores 0.5938 against 0.5938,
+exactly the teacher on every subject and every count. The dial
+between the endpoints is smooth, monotone in keys, and every
+point on it keeps the closed-loop properties. The perplexity
+non-regression guard holds on the serving form: 20.70 against
+the teacher's 17.59 in-run, below the registered structural
+bar.
+
+The mixture-of-experts sibling, the next conversion target, is
+measured on the same instrument. Qwen3-Coder-30B-A3B, the
+128-expert sibling, scores 69.5 percent zero-shot MMLU against the
+dense Qwen3.8-27B sibling's 78.1 on the same 256-question sample.
+On the seven-suite battery it beats the dense sibling on boolq and
+piqa and loses on hellaswag and arc\_challenge; against the 4B
+teacher it leads on six of seven suites and ties hellaswag exactly.
+At its active-3B compute class the mixture model is the faster and
+generally stronger model, but it does not uniformly dominate the
+dense 27B on knowledge-style items. The mixture-of-experts
+conversion question is asked against this measured surface, not a
+published figure.
+
+\subsection{The attention chain: retrieval wormholes}
+
+Attention is not replaced pointwise. Its softmax weight over past
+positions is, in this model, concentrated in three places: the
+first position, the attention sink \cite{xiao2023}, which carries
+59 percent of the mass at the measured layer; a local band around
+the query; and a few far positions that content routing can find.
+The replacement keeps all three exact and condenses the rest into
+one term per query. This report calls it a retrieval wormhole; the
+name is an analogy for the far links, and the mechanism is as
+follows. Keys are clustered with centers seeded farthest-first
+\cite{arthur2007}, and each query routes to its top-8 nearest
+clusters, hard routing in the manner of clustered attention
+\cite{vyas2020clustered}. Each head then reads the sink, the band,
+and the members of its routed clusters with exact softmax weights.
+The mass outside those sets becomes a monopole at per-token share,
+the far-field accounting of Barnes and Hut \cite{barnes1986}. A
+census pass over the layer's real inputs measures each head's mass
+split and marks a head dense where the mass it would drop, the
+share that is neither sink, local, nor routed, is at least five
+percent. At most eight heads per layer stay dense and keep exact
+attention; the census is where the known heterogeneity of attention
+heads \cite{clark2019, voita2019} enters the construction. The
+carrier is built from the layer's own weights and keys, routing is
+recomputed per query, and nothing is trained.
+
+One layer converts cleanly. The instrument first reproduces the
+layer's true attention from its own modules at cosine above 0.99;
+against that reference the carrier scores cosine 0.994 with 0.088
+relative error on captured windows. The swapped layer scores 15.78
+teacher-forced perplexity against the teacher's 15.80 on a
+forty-thousand-token slice, a delta of $-0.025$ against a $+0.02$
+admission bar.
+
+The four-layer chain sits at layers 25 through 28, with the real
+feed-forward networks kept and attention carried by the wormholes.
+It scores 15.85 against the teacher's 15.80 on the forty-thousand-
+token slice and 17.36 against 17.28 on the full evaluation. The
+stream error that staged feed-forward chains compound is absent
+when the feed-forward side stays real: the served hidden state at
+layer 32, the first real layer above the chain, reproduces the
+teacher's at an aggregate $R^2$ of 0.9995. An oracle confirms it.
+Blending the served stream toward the teacher's moves perplexity
+monotonically from 17.36 to 17.28, so the whole remaining window at
+the chain is 0.07 perplexity. The per-layer dense sets, re-derived
+on the stream the swapped layers actually produce, match the
+teacher-stream census at this chain length.
+
+Carriers at all fifteen body layers, 17 through 31, with real
+feed-forward networks everywhere, score 17.54 perplexity on the
+full evaluation with the census refreshed layer by layer on the
+served stream, and 17.63 without the refresh. The body does
+compound, from 0.08 at the wormhole span to 0.26 over fifteen
+layers, and
+the refresh changes the dense set at five layers and recovers about
+a quarter of the raw gap. The wormhole chain
+sits 0.26 away from the teacher over the fifteen-layer span with
+no repair beyond the census.
+\pending{The decode battery and the zero-shot accuracy gate on the
+fifteen-layer wormhole chain are not yet measured.}
+
+Teacher-forced perplexity is necessary and not sufficient. A
+serving form can match the teacher under teacher forcing and
+collapse under its own output, the exposure-bias gap known from
+sequence training \cite{bengio2015}. The serving gate therefore
+pairs perplexity with a decode battery: five continuation prompts
+decoded greedily for two hundred tokens, plus an instructed
+multiple-choice sample, scored for repetition \cite{holtzman2020}
+and agreement with the teacher, with the decoded text inspected.
+The four-layer chain passes. All five continuation prompts decode
+to clean prose, and the four multiple-choice suites answer
+identically to the teacher with no unanswered rows. Two
+continuation prompts diverge from the teacher on invented trivia in
+the same sentence frame, a plausible-continuation divergence and
+the residual of this result. The carrier bounds its cluster count
+by the block length and keeps centroids finite, and the serving
+hook aborts on any non-finite head rather than emitting one, so a
+numerics fault stops a run instead of corrupting a decode. On
+compute, the chain reads 0.415 of exact attention multiply-adds at
+the measured 576-token block and 0.353 extrapolated to 4096
+tokens, at about 81 visited keys per wormhole head plus 64 centroid
+dot products per query.
+
+\subsection{What the transparency buys}
+
+Two further capabilities follow from the construction. Both are
+stated here as predictions with their instruments named; neither is
+yet measured. The enabling mechanism is the distance field inside
+the additive form. Every stage is a literal sum over a kernel that
+is a distance field on its input space, and every stage partitions
+that space into regions by nearest-center assignment, the same
+geometry that routes the wormhole carrier. The network therefore
+carries a geometry of its own knowledge: each piece of learned
+behavior has an address, the region of input space where it lives,
+with a distance from every query. The addresses say where a
+foreign network's knowledge can be attached, and the residual over
+the same geometry says where the current network is weak.
+
+The first capability is knowledge merging across networks. A stage
+is defined by its geometry and its readout weights and nothing
+else. A stage fitted from another network's hidden states carries
+that network's geometry with it, so it can be added to, or
+substituted into, the existing network under the same gates once
+the two networks' code spaces are mapped. The networks need not be
+siblings: the map between any two code spaces is itself fitted from
+paired activations. For sibling networks the map is the
+permutation-matching line \cite{entezari2021}, with re-basin
+solutions \cite{ainsworth2023} and optimal-transport fusion
+\cite{singh2020}. For arbitrary networks the map is read through a
+lens-inversion diagnostic: multiple images, one region of one
+network appearing at several places in the other, and caustics,
+near-singular Jacobians where the alignment flips under noise, both
+measured on paired activations. A per-block correspondence census,
+the wormhole census generalized to whole networks, locates which
+blocks the current network does not cover. One network's knowledge
+then enters another as a fitted stage, with neither network
+retrained.
+
+The second capability is data requisition directed by the network
+itself. Attribution is exact and the residual is read over the
+same region geometry, so the network's own residual map says where
+it is weak: which regions carry the largest residual, which symbols
+contribute least, and where disagreement with a teacher
+concentrates. From that map the next data to acquire is chosen
+before any is collected, the classical active-learning position
+\cite{settles2009}: requisition examples at the weak regions and
+the disagreement tail, fit a new frozen stage on them, and leave
+every existing stage untouched. Growth becomes a measured
+transaction in which the network names its gaps and the data fills
+them. The instruments for both capabilities are the cross-network
+merges, the block-correspondence census, the lens-inversion map,
+and a real-scale growth cell whose student queries its teacher at
+its own measured weaknesses.
+
+\subsection{The similarity and the difference}
+
+The converted network keeps the original's skeleton: the same
+layer count, the same residuals, the same attention, the same
+head. One stage replaces one layer, and a stage maps its input
+vector to an output vector exactly as the layer did. A reader who
+pictures a conventional network as a landscape, each layer a
+surface over its input space, can keep that picture: the converted
+network is the same landscape, re-tiled. What changed is not the
+surface but what is known about it. The comparison below walks
+each formula in turn.
+
+\paragraph{The feed-forward stage and the layer it replaces.}
+A gated feed-forward layer computes
+$y = W_d\,\bigl(\mathrm{SiLU}(W_g x) \odot (W_u x)\bigr) + b$,
+with the residual added outside. The stage computes, for the
+layer's own rows $g_i$ and $u_i$,
+$h_i = \mathrm{SiLU}(g_i \cdot x)(u_i \cdot x)$, and reads out
+$y = W_r\,[h \mid x \mid 1]$. The nonlinear feature columns are
+literally the same computation as the layer's; what the stage
+replaces is the down-projection. Two columns are added, the
+identity and the constant, so the residual path and the bias are
+part of the fitted map instead of outside it, and the readout
+$W_r$ is the one ridge of Equation~\ref{eq:ridge}. The visual
+statement: the same hills, with their heights chosen by one
+least-squares solve instead of stored as a dense pixel grid.
+Compression then removes hills whose attribution is inert and
+refits the heights, so the landscape keeps its shape at a
+fraction of the columns.
+
+\paragraph{The fitting rule and the training rule.}
+The trained network reaches its weights by iterative gradient
+flow over one global loss, with weight decay
+\cite{adam2015}. The stage reaches its readout by the normal
+equations of the same least-squares problem, one closed-form jump
+to the optimum, with the penalty cross-validated
+\cite{hoerl1970}. The two rules are the same optimum approached
+by different routes: the ridge is the fixed point a linear
+readout's stochastic descent approaches, and the penalty is the
+closed-form analog of weight decay, the lever whose
+overparameterized library selects the generalizing solution
+\cite{nanda2023}. The difference is the target. Gradient flow
+supervises every weight through the end loss; the stage is
+supervised by its layer's recorded outputs, fit on the teacher
+stream and refit on the served stream. One coupling disappears:
+no gradient connects one stage's fitting to another's, so an
+error stays in its stage, and a weak patch is refit without
+touching its neighbors.
+
+\paragraph{Attention and the retrieval wormhole.}
+The dense row is
+$a_{ij} = \mathrm{softmax}_j(q_i^{\top} k_j / \sqrt{d})$ and
+$o_i = \sum_j a_{ij} v_j$, with rotary positions, head-normalized
+queries and keys, a causal mask, and the output projection. The
+carrier keeps all of it verbatim and rebuilds only the weight
+row, per head. The census measures where each head's mass lives;
+heads that are mostly sink, local, and routed are carried, and
+the rest stay dense. A carried head scores its sink token, its
+local band, and the members of its top eight routed clusters with
+the exact softmax above, and summarizes the remaining mass as a
+monopole at per-token share, the far-field accounting of Barnes
+and Hut \cite{barnes1986}. Short blocks are dense throughout.
+Two things are therefore true at once: on the kept keys the
+computation is exact attention, not an approximation of it, and
+the discarded mass is replaced by a mass summary, not by
+per-key scores. Routing is geometric, derived from key
+clustering \cite{arthur2007} in the clustered-attention form
+\cite{vyas2020clustered}, where a trained network learns its
+routing instead. The visual statement: the weight row is a spiky
+landscape over positions; the wormhole keeps every spike, the
+sink, the band, and the routed far keys, and fills the gaps
+between the spikes with one smooth mass field per query. The
+spikes are the wormholes, tunnels through cluster centroids to
+the far keys that matter; the field between them is the
+gap-filling term.
+
+\paragraph{The norms, the positions, and the head.}
+The root-mean-square norm with its learned gain, the rotary
+position encodings, the embeddings, and the output head are taken
+verbatim from the model. The conversion replaces the pointwise
+feed-forward network of every layer and, in the attention-side
+form, the weight rows of chosen heads; the residual structure,
+the depth, and the head are untouched. This is why the landscape
+picture holds: the network's geometry is preserved by
+construction, and only the tiles change.
+
+\paragraph{The expert router and the census.}
+A mixture-of-experts layer routes through a learned softmax gate
+over its experts. The conversion reads that gate directly; the
+census pass measures which experts are live and how flat the
+routing is before any stage is placed, and the expert bodies
+convert by the same frozen-key stages as dense feed-forward
+networks. The routing that the wormhole carrier adds, clusters
+over keys, is the same hard top-$k$ shape as sparse gating, with
+the rule derived from key geometry and measured by the census
+rather than trained.
+
+\paragraph{Where the properties come from.}
+In the trained network, a layer's job exists only implicitly in
+its weights. One global loss describes the whole network, and no
+single layer's contribution can be read from it; finding a weak
+layer means probing, attribution, or retraining experiments. In
+the converted network, every stage carries an explicit contract:
+it is fitted to reproduce its layer's recorded outputs on
+recorded inputs, so the stage's error on held-out rows is
+measured directly. Three properties follow, and sparsity is their
+consequence rather than their cause. First, the closed-form,
+teacher-forced fit removes the cross-stage gradient coupling, so
+error stays local and refits stay local. Second, the residual is
+read as error, not as size: a region whose residual values are
+large but which the stage reproduces exactly needs no new data,
+and only the difference against the recorded target, together
+with how thinly the corpus covers the region, names a weak
+patch. Third, every diagnostic quantity, the fit error, the
+coverage, and the census mass splits, is attached to a named
+region of a named stage, which turns ``the network is weak
+somewhere'' into ``stage $j$ is weak in region $r$, and here is
+the next data to acquire.''
+
+\paragraph{The happy path and the not-happy path.}
+These readings describe the happy path, a term borrowed from
+programming for the most straightforward and expected scenario
+in a process, the one in which everything goes as planned. The
+name exists because there are always other paths and other
+outcomes, and it helps a non-programming reader keep the two
+apart: the happy path is the ideal situation, not the only
+one. On the happy path the stage reproduces its recorded
+target: the residual is then the layer's own unexplained
+output, and reading it as error rather than as size is exact.
+The not-happy path is where the
+reproduction fails, a region in which the fitted readout does
+not match the layer's recorded outputs even on held-out rows.
+There the residual mixes the two things the happy path keeps
+apart: the layer's genuine signal and the stage's failure to
+represent it. Reading that residual as error charges the region
+for a defect that belongs to the basis, not to the data. The
+instruments keep the two paths apart because the fit error is
+measured against the recorded target, not against output
+magnitude: a region with a large residual and a small fit error
+is on the happy path and needs no new data, while a region with
+a large fit error is on the not-happy path, and the same
+named-region reading reports it as a representational failure of
+stage $j$ in region $r$, with the recourse it actually calls
+for: a richer basis where the basis lacks the shape, more data
+where the coverage is thin, and the original layer kept dense
+where neither closes the gap. Coverage and novelty have their
+own not-happy paths and are flagged in the same way: a thinly
+covered region is reported as thin rather than folded into its
+fit error, and an input far outside the corpus is reported as
+extrapolation, so a residual computed there is labeled a guess
+rather than an error. The not-happy path is therefore measured,
+not hidden: the readings degrade by naming their own failure,
+and because the fit remains closed-form and teacher-forced, a
+failed stage is still isolated, its errors stay in its region,
+and its neighbors keep their contracts while it is rebuilt.
+
+\paragraph{The prediction: the instruments transfer back.}
+The epistemic layer is separable from the conversion, and the
+first part of that claim is measured rather than predicted. A
+conventionally trained network was audited without converting
+it: its activations were recorded, per-layer frozen-key
+surrogates were fitted on them in closed form, and per-patch
+error, coverage, and novelty were read against the original
+weights, an audit shadow that left training untouched and whose
+per-layer readings matched across devices exactly. The same
+logic yields two stronger integrations, which remain
+predictions. A per-layer
+closed-form refit on the stream a network actually produces is a
+maintenance step available to any network, the serve-refit law
+detached from the conversion. And local least-squares targets can
+be inserted into training itself, the layerwise and fast-weight
+lineage \cite{schmidhuber1992, fahlman1990, ba2016, irie2021},
+so that a trained network's patches acquire measured contracts
+as they are learned. This report states the prediction with its
+instruments named, the same discipline as the capabilities above:
+the per-patch instruments attach to any network; what requires
+the conversion is the frozen stage's closed-form lifetime, not
+the measurement.
+
+% ==================================================================
+\section{Prior art and position}
+% ==================================================================
+
+The construction borrows its parts from several lines of work,
+named here with the difference stated for each. Two lines come
+close enough to the core claim that the comparison is made
+explicit, and the things they do better are adopted. The position
+that results is at the end of the section.
+
+The basis for replacing a layer with a kernel stage. A network
+trained by gradient descent is approximately a kernel machine over
+its training data \cite{domingos2020}, and a transformer's
+feed-forward layer acts as a key-value memory over its inputs
+\cite{geva2021}. Both say that a pointwise layer of a trained
+network is the kind of function a kernel readout can reproduce.
+The equivalence between the trained form and the kernel form is
+itself prior art, in three strengths: frozen random features with
+a linear readout approximate what trained networks compute
+\cite{huang2006}, gradient descent on wide networks is kernel
+ridge regression in the limit \cite{jacot2018}, and any
+gradient-trained model is approximately a kernel machine
+\cite{domingos2020}. What this report adds is the reverse
+direction: an existing trained network converted, layer by layer,
+into the closed-form stage, with the reproduction measured on
+held-out rows rather than assumed, and the readout kept in
+closed form.
+
+The kernel and field line. Closed-form radial-basis surface
+reconstruction is Carr et al.~\cite{carr2001}; multi-level
+partition-of-unity refinement is Ohtake et al.~\cite{ohtake2003};
+the two-level coarse-plus-fine variant is Pan and Skala
+\cite{pan2011}. Random features with a trained linear readout are
+Rahimi and Recht \cite{rahimi2007}, and the Fourier-feature
+frequency analysis is Tancik et al.~\cite{tancik2020}. Recent
+closed-form field methods include extreme-learning-machine implicit
+representations \cite{cho2026}, Mat\'ern-kernel reconstruction
+\cite{weiherer2025}, RBF-interpolated polynomials \cite{zhang2025},
+and kernel-regression signed-distance fields \cite{dai2026};
+ellipsoidal radial bases were measured by SE-RBFNet
+\cite{lian2025}, which trains its shapes by gradient descent.
+Stagewise residual fitting of random features is representation
+boosting \cite{zozoulenko2025}. The difference is the target and
+the discipline. That line reconstructs geometry from coordinates
+and trains its adaptive shapes. This construction summarizes a
+trained network's internal map or fits a field with one closed-form
+solve, the readout is fit on targets and never re-projects a kernel
+matrix, and the artifact carries a flat level-of-detail ladder and
+the attribution property set. No found work converts a network
+layer into an ellipsoid-mixture formula with a free detail ladder.
+
+The language-model line. The content-attention framing is the
+fast-weight-programmer line \cite{schmidhuber1992, ba2016,
+schlag2021, irie2021, irie2022}, with the reservoir arm anchored
+by echo state networks \cite{jaeger2001}. The memory-plus-local-
+match framing is cache language models \cite{grave2017} and
+nearest-neighbor language models \cite{khandelwal2019}.
+Count-based embeddings are Levy and Goldberg \cite{levy2014}, the
+likelihood head is the classical neural language model
+\cite{bengio2003, mikolov2010}, and the classical floor is
+Kneser-Ney smoothing \cite{kneser1995}. The growth policy is
+cascade-correlation \cite{fahlman1990}, Prechelt \cite{prechelt1998},
+boosting \cite{friedman2001}, and growing transformers
+\cite{growing2025}. No found prior art combines
+count-initialized embeddings, a fixed long-range content-attention
+read, an overfit-triggered cascade of learned query arms, and a
+closed-form-initialized likelihood head into one measured assembly
+on word-level text.
+
+The model-compression line. Removing layers and recovering quality
+is ShortGPT \cite{shortgpt2024} and self-data distillation
+\cite{selfdataddistill2025}; rewriting the matrices is SliceGPT
+\cite{slicegpt2024}; replacing a band with one module is modular
+transformers \cite{modulartransformers2023} and cross-architecture
+layerwise distillation \cite{cald2025}; the activation statistics
+such fits read are the massive-activation phenomenon
+\cite{sun2024massive, shiexplain2026, ramanoutlier2025}. None of
+these re-parameterizes the layer as a closed-form field. The
+formula stage is not pruned, not distilled, and not made low-rank.
+It is the same function written as a frozen-key readout, with the
+key-attribution compression ladder and the attribution discipline
+intact.
+
+The replacement line, the nearest work on the conversion axis.
+Four recent methods replace parts of a pretrained transformer with
+maps fitted in closed form on calibration data, with no training.
+ReplaceMe \cite{replaceme2025} replaces pruned blocks with one
+linear map estimated by least squares and merges it into the
+adjacent weights, keeping about 90 percent of benchmark
+performance at 25 percent depth pruning. Ghosted Layers
+\cite{ghostedlayers2026} derives the unconstrained closed-form
+linear operator that aligns the boundary activation after pruning.
+SHIFT-LLM \cite{shiftllm2026} inserts an affine residual adapter
+at each pruning site, calibrated by least squares, to correct the
+hidden-state distribution shift that downstream layers see, and
+merges adapters exactly across consecutive sites. SubFit
+\cite{subfit2026} works at the submodule level, choosing attention
+and feed-forward submodules non-contiguously by measured
+redundancy and giving each its own fitted residual bypass; at 25
+percent sparsity it retains 84.6 percent of downstream accuracy at
+2.42 times the perplexity, against 81.6 percent and 4.34 times for
+the strongest baselines. The differences are three. Their
+replacement is affine, and an affine map deletes a block's
+nonlinearity rather than reproducing it; this report's stage is a
+nonlinear key readout that reproduces the layer at $R^2$ 1.0 on
+held-out rows, where the replacement line reports 2.4 to 4.3
+times at a quarter of the depth removed. Their objective is
+compression, and none of them claims or measures attribution,
+replay, growth by addition, or composition. And their linear map
+has no content routing: attention is deleted, not replaced. What
+that line does better is adopted. SHIFT-LLM's closed-form affine
+correction of the stream at a replacement site is the lever this
+report has not yet tried against the residual stream error of the
+compressed rungs, and it is registered in the open measurements.
+SubFit's per-submodule redundancy census is the measured way to
+choose conversion order and anchor placement.
+
+The transcoder line, the nearest work on the attribution axis.
+Transcoders \cite{dunefsky2024} replace a dense feed-forward layer
+with a wider, sparsely activating one so that circuits can be read
+through it; cross-layer transcoders \cite{ameisen2025} assemble
+these into a replacement model whose attribution graphs trace a
+prediction to features, and on vision transformers they turn the
+final representation into an additive, layer-resolved construction
+with faithful attribution while preserving zero-shot accuracy
+\cite{cltvit2026}. The differences: transcoders are trained by
+gradient descent with a sparsity penalty, they are a proxy for
+interpretation rather than a served form, and replay, growth, and
+composition are not claimed. What they do better is that their
+attribution is measured by ablation, removing the top-scoring terms
+and checking that performance falls, and their features are
+readable by a person. This report's conversion track has so far
+asserted attribution by construction and measured it only on
+fields; the ablation-faithfulness test is adopted and registered.
+Component-level Shapley values with efficient estimation are
+Neuron Shapley \cite{ghorbani2020}; this report applies Shapley
+at the level of whole codes.
+
+The attention-linearization line. Hedgehog \cite{hedgehog2024},
+SUPRA \cite{supra2024}, and LoLCATs \cite{lolcats2024} convert a
+pretrained model's softmax attention to linear attention by
+training the replacement to match attention outputs and then
+repairing with low-rank adaptation; LoLCATs does so with 0.4
+percent of earlier methods' tokens, still billions, and the line
+reports quality gaps and in-context shortfalls. The gain is a
+fixed-size state and linear-time attention. This report's carrier
+is training-free and keeps exact softmax on the retained keys, at
+$+0.08$ perplexity for the chain; its cost is a gather-shaped read
+whose wall-clock crossover is not yet measured. Hedgehog's finding
+that spiky, monotone feature maps are what linear attention needs
+to match softmax is the lesson carried into the diffuse-head
+carrier candidate, fitted in closed form rather than trained.
+Kernel ridge regression as a token mixer trained from scratch is
+Cubit \cite{cubit2026}.
+
+The serving line. Heavy-hitter retention keeps the recent and the
+highly attended tokens \cite{h2o2023}; paged attention with
+central-memory offload is vLLM \cite{vllm2023}; hierarchical
+key-value caching is LMCache \cite{lmcache2024}; offload scheduling
+under memory pressure is FlexGen \cite{flexgen2023}; and
+prompt-aware eviction is SnapKV \cite{snapkv2024}. The difference
+is the predictor. Those systems decide which keys stay resident by
+measured attention or learned salience. The dictionary read decides
+with a fixed closed-form rule, the similarity between the query and
+the stored keys, over a two-hundred-key buffer on the converted
+network.
+
+The sparse-attention line. Exact attention over a retrieved or
+routed subset is Reformer's locality-sensitive hashing
+\cite{kitaev2020}, Routing Transformers' content-based
+routing \cite{roy2021}, and clustered attention, which routes
+queries over k-means key clusters \cite{vyas2020clustered},
+with centroid seeding in the k-means-plus-plus tradition
+\cite{arthur2007}; the KV-sparsity serving family carries
+the index forward: Quest's query-aware sparsity
+\cite{quest2025}, RetrievalAttention's vector-index retrieval
+\cite{retrievalattention2024}, MagicPIG's LSH sampling
+\cite{magicpig2024}, and Squeezed Attention's budgeted
+selection \cite{squeezed2025}, with the indexing machinery
+itself the inverted-file and product-quantization line of
+J\'egou et al.~\cite{jegou2011} and HNSW \cite{malkov2018}.
+The low-rank forms are Linformer \cite{linformer2020}. The
+attention sink, the massive mass on the first token that the
+measured layer shows at 59 percent of softmax mass, is
+StreamingLLM \cite{xiao2023}; head heterogeneity, behind the
+per-layer census that decides the dense dispatch, is the
+head-analysis line \cite{clark2019, voita2019}, with per-head
+variable context closest to Adaptive Attention Span
+\cite{sukhbaatar2019}, and the outlier-direction structure is
+the massive-activation line cited above. The monopole
+approximation of the mass outside the exact sets is the
+far-field accounting of Barnes and Hut \cite{barnes1986}. The
+difference is the purpose and the gate. That line makes
+attention cheaper for a model that is then trained or served as
+is. Here the carrier replaces a pretrained layer's attention with
+no training, is admitted only through an exactness gate against
+the layer's own attention, a per-head mass census that decides
+which heads stay dense, a swapped-layer perplexity gate, and a
+free-generation decode battery, and it is measured as a chain,
+where its value is that it does not compound. No sparsity budget
+is chosen for its own sake and no span is learned.
+
+The position. No prior work converts a pretrained network, layer
+by layer, into nonlinear closed-form stages that keep exact
+attribution, deterministic replay, growth by frozen addition, and
+gated composition, and measures where the conversion holds and
+where it fails. The nearest line on the conversion axis replaces
+blocks with least-squares linear maps for compression and claims
+none of the properties; the nearest line on the attribution axis
+trains its replacement and does not serve it. The parts are
+borrowed and cited; the conversion, the property set it carries,
+and the measured map are new. The map has four parts. A frozen,
+versioned, attributable construction beats a small trained net on
+fields and passes the classical floor on word-level language at toy
+scale. A pretrained model's feed-forward stages become frozen
+teacher-key stages read out by one ridge solve, reproducing the
+layer exactly on held-out rows, compressed by key attribution to
+any point on a measured quality ladder. Its mid-model attention
+becomes retrieval wormholes, with the sink, the local band, and
+the routed clusters exact and the diffuse heads dense, and a chain
+of them at the compounding span holds teacher parity on
+perplexity and passes the decode battery. And three negative
+results decided the architecture: basis mismatch, growth drift,
+and un-gated composition, each with its measured cause. Two further
+capabilities are stated as predictions because they are what the
+property set is for: one additive network can absorb stages fitted
+from another network's activations, and the network's own residual
+map directs which data to requisition next. The submodule-level
+closed-form merging of \cite{submodlin2025} and the byte-exact
+replay protocol of \cite{kvgraft2026} are the nearest work on
+those two axes and are cited where the predictions are measured.
+
+A knowledge analogy: The trained form and the closed-form stage
+are the same two strategies that manufacturing names subtractive
+and additive. Gradient training is machining: start from a full
+block of capacity and remove what does not fit, one global pass
+at a time, so a changed requirement means carving a new block from
+scratch and the removed mass is waste. The stage is printing:
+deposit only the material the function needs, keys placed where
+the layer's own weights concentrate and a readout fitted in one
+solve, so a changed requirement is more material where the map is
+thin, and every deposited part is named, attributable, and
+re-runnable. The analogy is scoped to that one axis, how
+knowledge is accumulated and revised; nothing beyond it is
+claimed by it.
+
+% ==================================================================
+\section{Known limits}
+% ==================================================================
+
+The limits are stated as precisely as the capabilities.
+
+1. The strongest trained baselines stay ahead on fields. A converged
+   DeepSDF-class network is ahead of the two-stage recipe by about
+   15 percent at the median, inside 1.3 times on three quarters of
+   the shapes and with a per-shape tail to twice the error. Nothing
+   here establishes parity with the strongest trained baselines;
+   it establishes a bounded gap to one converged DeepSDF-class
+   network. The levers that move the gap act on the solve, not the
+   basis: a second frozen stage and a band-weighted solve.
+
+2. The field result is per shape. Across-class amortization is
+   tested in the closed-form sense only, and the DeepSDF-style
+   trained-prior family's across-class strength is not reproduced
+   or claimed.
+
+3. The field accuracy results corroborate the random-feature and
+   kernel literature rather than extend it. Every component of the
+   field recipe is published, and the measured parity with a small
+   trained net is what that literature predicts.
+
+4. Composition is gated and scoped. Un-gated summation fails for
+   the accurate recipe. Region-gated summation composes on
+   separated two-object scenes and stops preserving each object
+   once the objects overlap, once the scene has five codes, or once
+   the gate softens. A composable code carries its training surface
+   samples under the data contract.
+
+5. The synthetic field reference is one shape family. Transfer
+   across very different geometry families is not established by
+   that instrument, and the real-data sign uses winding-consistent
+   face normals because the meshes are not all watertight.
+
+6. The language track is data-limited. Two million words is small,
+   the growth policy terminated after three arms for lack of data,
+   and the recipe has not been re-tested at larger scale or on
+   subword tokens. The recipe is not pure closed-form end to end:
+   the embeddings, query projections, and head are gradient-trained
+   from a closed-form initialization.
+
+7. Word perplexity is not comparable to subword perplexity, and
+   every number in the language track is word-level on
+   word-tokenized WikiText-2.
+
+8. The conversion numbers are one teacher, one corpus, one
+   evaluation convention, and all thirty-six feed-forward layers
+   staged with native attention everywhere. At 0.89 of the key
+   count with the serve-refit applied the converted network is
+   usable but not competitive: the binding zero-shot read sits
+   3.9 points below the teacher, concentrated in the mathematics
+   subjects, and closing that deficit beyond the measured key
+   ladder is open. At full keys with native-dtype stage compute
+   the network matches the teacher exactly on the binding read,
+   at native-scale compute. The perplexity non-regression guard
+   holds at the registered coarse bar, and the decode battery is
+   a sampled stability check, not a proof that every prompt
+   decodes well. Zero-shot accuracy is read on the converted
+   network as its binding gate.
+
+9. The spatial application of the ellipsoid representation, as an
+   alternative to local convolutions, is an open direction rather
+   than a result: the shift-invariance question that a global field
+   raises against a local operator has not been measured, and this
+   report claims nothing there.
+
+10. Determinism is seed-level. The library, the cross-validation
+    split, and the solve are seeded and bit-identical on the tested
+    platform; this is verified, but it is a property of the tested
+    numerical stack, not a proof for all platforms.
+
+11. The wormhole chain is measured on one teacher, one corpus,
+    and one context-length instrument: blocks of 512 tokens with
+    a 64-token carry. Two continuation prompts diverge from the
+    teacher on invented trivia. The 4096-token compute ratio is
+    extrapolated from the measured 576-token block, and the
+    compute is counted in multiply-adds, not wall-clock time; the
+    retrieval is gather-shaped, and its wall-clock crossover
+    against dense attention is not yet measured. The decode
+    battery is a sampled stability check alongside teacher-forced
+    perplexity, not a proof that every prompt decodes well, and it
+    has run on the four-layer chain only. The fifteen-layer chain
+    has its perplexity number and awaits the battery and the
+    accuracy gate.
+
+% ==================================================================
+\section{Integration into GEODE}
+% ==================================================================
+
+The measurements decide what the additive construction contributes
+to the network, and the implementation follows the measurements.
+The first-class artifact is a code: a versioned, hashed object that
+contains the carrier or basis, the frozen libraries or mixture
+geometry, the ridge weights with their chosen penalties, and, for a
+composable field, the near-surface points its gate reads.
+Inference is deterministic: evaluate the basis, multiply by the
+weights, add. One evaluation, no training, bit-identical replay,
+verified across processes; the artifact's content hash is its
+fingerprint. A code enters the model graph through the same
+registration form as any learned representation \cite{whitepaper},
+and the fitting implementation that produced every number in this
+report is the one implementation the network runs.
+
+Pricing follows the whitepaper's measured-use economy, and the
+attribution measurements support it: per-symbol contributions are
+measurable, stable, and diffuse, and the payment rule is the
+network's single Shapley rule applied to whole codes, never to the
+symbols inside a code. Composition follows the measurements: codes
+compose under the region gate and by selection and readout
+otherwise; the network never sums un-gated field codes at runtime.
+Growth follows the measurements: a code is fit once at registration
+and frozen, a new capability is a new registration, and within a
+code growth is a frozen stage. The conversion stages enter as
+serving artifacts under the same discipline, with the sampled
+generation gate as their admission test.
+
+The integration posture, in one sentence: the network registers the
+measured constructions as codes, composes them only under the
+region gate, grows only by frozen stages and new registrations, and
+pays by the one Shapley rule at the code level.
+
+% ==================================================================
+\section{Conclusion}
+% ==================================================================
+
+One construction, three tracks, one discipline. A frozen basis read
+out by one cross-validated ridge solve, realized as an ellipsoid
+mixture with a level-of-detail ladder, beats a small trained
+residual net on signed-distance fields on every real shape where
+that net converges, passes the classical language-model floor from
+scratch at toy scale, and converts a pretrained model's
+feed-forward stages into frozen teacher-key stages read out by one
+ridge solve, reproducing the layer exactly on held-out rows, with
+mid-model attention replaced by retrieval wormholes that do not
+compound and a fully converted network, all thirty-six
+feed-forward stages, that passes the closed-loop battery at 0.89
+of the key count and, at full keys, scores exactly the teacher's
+zero-shot accuracy.
+Attribution and replay hold everywhere by construction.
+The negative results are part of the design: growth by re-solving
+drifts, un-gated summation extrapolates, and any basis that omits
+the teacher's key directions leaves most of the variance
+unexplained. No prior work converts a pretrained network
+into a form that carries these properties; the nearest lines
+replace blocks with linear maps for compression or train an
+attribution proxy that is never served, and what they do better is
+adopted. The map of where the conversion holds and where it fails
+is measured. The invitation is to verify: every number is
+reproducible from one deterministic implementation on a stated
+instrument.
+
+% ==================================================================
+\section*{Open measurements and the predicted result}
+\addcontentsline{toc}{section}{Open measurements and the
+predicted result}
+
+The measurements below are planned and not yet run. The prediction
+that follows them is written before the numbers so that the target
+is fixed in advance. It is a prediction, not a result, and must not
+be cited as one; measured claims replace it as each measurement
+completes.
+
+The open measurements are:
+\begin{itemize}
+\item the order-of-operations alternatives of the serve-refit:
+  a second pass on the stream the refit itself produced, a
+  layer-by-layer refit with recapture after each layer, refit
+  before the fidelity escalation, and key selection re-derived
+  on the served stream;
+\item the denoising isolation: the full-keys staged network
+  against the teacher on a large-$n$ battery, separating any
+  smoothing gain of the ridge readout from the compression
+  loss;
+\item the four adoptions from the prior-art comparison: a
+  closed-form affine correction of the served stream at each
+  converted layer, in the manner of SHIFT-LLM and Ghosted Layers,
+  measured against the compressed rungs' residual; a
+  per-submodule redundancy census, in the manner of SubFit, to
+  choose conversion order and anchor placement; an
+  ablation-faithfulness test of per-key attribution on the
+  converted stages, in the manner of the transcoder line; and a
+  byte-exact replay protocol for the served body, hash equality of
+  the logits across processes under a pinned configuration;
+\item a census of the mixture-of-experts router on Qwen3-30B-A3B
+  and one closed-form stage fitted against the router's top-8
+  expert mixture, the open question of mixture-of-experts
+  conversion;
+\item cross-network merging: one arm supervised at the output by a
+  stronger open teacher, one arm targeted at the hidden state, with
+  the code-space map read through the lens-inversion diagnostic and
+  the block-correspondence census locating the uncovered blocks;
+\item the ellipsoid-mixture port of the language track;
+\item the serve-time residency gate of the consumer-grade target;
+\item the from-scratch track at real scale, on a fixed 300--500 euro
+  compute budget, GPT-2-class subword training in which the student
+  queries a teacher only at its own measured disagreement tail,
+  against an equal-budget random-query null arm. The student is
+  preloaded with a count-built concept graph of the field, grounded
+  node by node by the same queries, with the nested null that the
+  graph must pay for itself. Wherever a question is checkable, a
+  verifier, a Lean checker for mathematics or a simulator for
+  physics, answers it instead of the teacher, with the gate that
+  the verifier arm must beat the teacher arm at half the teacher
+  budget. Where neither ground nor teacher can answer, an adversary
+  over real observations, simulator output, and student creations
+  grades plausibility and nothing more.
+\end{itemize}
+
+\medskip
+\noindent\fcolorbox{red!70!black}{yellow!35}{%
+\begin{minipage}{\dimexpr\textwidth-2\fboxsep-2\fboxrule}%
+\noindent\textbf{\textcolor{red}{[PREDICTION, NOT A RESULT]}}
+\par\medskip
+Additive networks convert mixture-of-experts models as well as
+dense ones: a closed-form stage fitted against the router's top-8
+expert mixture on Qwen3-30B-A3B holds near-teacher perplexity on
+the stated instruments. Converted networks then merge, siblings or
+not, through output-level supervision from a stronger open teacher
+and state-targeted stages placed where the code-space map and the
+block census locate uncovered blocks. The from-scratch track
+leaves toy scale on a fixed 300--500 euro budget, with the teacher
+met only where the student is weak and the ground cannot speak.
+Throughout, an additive network, grown, converted, or merged, keeps
+exact attribution, deterministic replay, growth by addition, and
+gated composition within a bounded factor of the strongest trained
+baselines, on a gaming-class machine. Whether any of this holds is
+what the open measurements decide.
+\end{minipage}}%
+
+
+\begin{thebibliography}{99}\small
+
+\bibitem{kitaev2020}
+N.~Kitaev, \L.~Kaiser, and A.~Levskaya.
+Reformer: the efficient transformer.
+\emph{ICLR}, 2020. arXiv:2001.04451.
+
+\bibitem{roy2021}
+A.~Roy, M.~Saffar, A.~Vaswani, and D.~Grangier.
+Efficient content-based sparse attention with routing
+transformers.
+\emph{Transactions of the ACL}, 2021. arXiv:2003.05997.
+
+\bibitem{quest2025}
+J.~Tang, Y.~Zhao, K.~Zhu, G.~Xiao, B.~Kasikci, and S.~Han.
+Quest: query-aware sparsity for efficient long-context LLM
+inference.
+\emph{MLSys}, 2025. arXiv:2406.10774.
+
+\bibitem{retrievalattention2024}
+D.~Liu, M.~Chen, B.~Lu, H.~Jiang, Z.~Chen, S.~Li, and
+P.~Chen.
+RetrievalAttention: accelerating long-context LLM inference via
+vector retrieval.
+\emph{ICML}, 2024. arXiv:2409.10516.
+
+\bibitem{magicpig2024}
+Z.~Chen, R.~Sadagopan, H.~Huang, D.~Liu, M.~Chen, and S.~Li.
+MagicPIG: LSH sampling for efficient LLM generation.
+arXiv:2410.16179, 2024.
+
+\bibitem{squeezed2025}
+J.~Noh, H.~Lee, K.~Lee, S.~Woo, and S.~Kim.
+Squeezed attention: accelerating long context length LLM
+inference.
+\emph{ACL}, 2025.
+
+\bibitem{jegou2011}
+H.~J\'egou, M.~Douze, and C.~Schmid.
+Product quantization for nearest neighbor search.
+\emph{IEEE TPAMI}, 33(1), 2011.
+
+\bibitem{malkov2018}
+Y.~A.~Malkov and D.~A.~Yashunin.
+Efficient and robust approximate nearest neighbor search using
+hierarchical navigable small world graphs.
+\emph{IEEE TPAMI}, 42(4), 2020. arXiv:1603.09320.
+
+\bibitem{linformer2020}
+S.~Wang, B.~Z.~Li, M.~Khabsa, H.~Fang, and H.~Ma.
+Linformer: self-attention with linear complexity.
+arXiv:2006.04768, 2020.
+
+\bibitem{xiao2023}
+G.~Xiao, Y.~Tian, B.~Chen, S.~Han, and M.~Lewis.
+Efficient streaming language models with attention sinks.
+\emph{ICLR}, 2024. arXiv:2309.17453.
+
+\bibitem{clark2019}
+K.~Clark, U.~Khandelwal, O.~Levy, and C.~D.~Manning.
+What does BERT look at? An analysis of BERT's attention.
+\emph{BlackboxNLP}, 2019.
+
+\bibitem{sukhbaatar2019}
+S.~Sukhbaatar, E.~Grave, P.~Bojanowski, and A.~Joulin.
+Adaptive attention span in transformers.
+\emph{ACL}, 2019. arXiv:1908.10864.
+
+\bibitem{whitepaper}
+
+\bibitem{schmidhuber1992}
+J.~Schmidhuber.
+Learning to control fast-weight memories: an alternative to dynamic
+recurrent networks.
+\emph{Neural Computation}, 4(1), 1992.
+
+\bibitem{ba2016}
+J.~Ba, G.~Hinton, V.~Mnih, J.~Z.~Leibo, and C.~Ionescu.
+Using fast weights to attend to the recent past.
+\emph{NeurIPS}, 2016.
+
+\bibitem{schlag2021}
+I.~Schlag, K.~Irie, and J.~Schmidhuber.
+Linear transformers are secretly fast weight programmers.
+\emph{ICML}, 2021.
+
+\bibitem{irie2021}
+K.~Irie, I.~Schlag, R.~Csord\'as, and J.~Schmidhuber.
+Going beyond linear transformers with recurrent fast weight
+programmers.
+\emph{NeurIPS}, 2021.
+
+\bibitem{irie2022}
+K.~Irie, R.~Csord\'as, and J.~Schmidhuber.
+The dual form of neural networks revisited: connecting test time
+predictions to training patterns via spotlights of attention.
+\emph{ICML}, 2022.
+
+\bibitem{jaeger2001}
+H.~Jaeger.
+The ``echo state'' approach to analysing and training recurrent
+neural networks.
+GMD Report 148, 2001.
+
+\bibitem{fahlman1990}
+S.~E.~Fahlman and C.~Lebiere.
+The cascade-correlation learning architecture.
+\emph{NeurIPS}, 1990.
+
+\bibitem{prechelt1998}
+L.~Prechelt.
+Early stopping, but when?
+\emph{Neural Networks: Tricks of the Trade}, 1998.
+
+\bibitem{growing2025}
+A.~Gesmundo.
+Growing transformers.
+\emph{arXiv:2507.21151}, 2025.
+
+\bibitem{grave2017}
+E.~Grave, A.~Joulin, and N.~Usunier.
+Improving neural language models with a continuous cache.
+\emph{ICLR}, 2017.
+
+\bibitem{khandelwal2019}
+U.~Khandelwal, O.~Levy, D.~Jurafsky, L.~Zettlemoyer, and M.~Lewis.
+Generalization through memorization: nearest neighbor language
+models.
+\emph{ICLR}, 2020.
+
+\bibitem{rahimi2007}
+A.~Rahimi and B.~Recht.
+Random features for large-scale kernel machines.
+\emph{NeurIPS}, 2007.
+
+\bibitem{levy2014}
+O.~Levy and Y.~Goldberg.
+Neural word embedding as implicit matrix factorization.
+\emph{NeurIPS}, 2014.
+
+\bibitem{kneser1995}
+R.~Kneser and H.~Ney.
+Improved backing-off for m-gram language modeling.
+\emph{ICASSP}, 1995.
+
+\bibitem{hoerl1970}
+A.~E.~Hoerl and R.~W.~Kennard.
+Ridge regression: biased estimation for nonorthogonal problems.
+\emph{Technometrics}, 12(1), 1970.
+
+\bibitem{press2021}
+O.~Press, N.~A.~Smith, and M.~Lewis.
+Train short, test long: attention with linear biases enables input
+length extrapolation.
+\emph{ICLR}, 2022.
+
+\bibitem{lecun1990}
+Y.~LeCun, J.~S.~Denker, and S.~A.~Solla.
+Optimal brain damage.
+\emph{NeurIPS}, 1990.
+
+\bibitem{bengio2003}
+Y.~Bengio, R.~Ducharme, P.~Vincent, and C.~Jauvin.
+A neural probabilistic language model.
+\emph{JMLR}, 3, 2003.
+
+\bibitem{mikolov2010}
+T.~Mikolov, M.~Karafi\'at, L.~Burget, J.~\v{C}ernock\'y, and
+S.~Khudanpur.
+Recurrent neural network based language model.
+\emph{Interspeech}, 2010.
+
+\bibitem{friedman2001}
+J.~H.~Friedman.
+Greedy function approximation: a gradient boosting machine.
+\emph{Annals of Statistics}, 2001.
+
+\bibitem{blinn1982}
+J.~F.~Blinn.
+A generalization of algebraic surface drawing.
+\emph{ACM Transactions on Graphics}, 1(3), 1982.
+
+\bibitem{carr2001}
+J.~C.~Carr, R.~K.~Beatson, J.~B.~Cherrie, T.~J.~Mitchell,
+W.~R.~Fright, B.~C.~McCallum, and T.~R.~Evans.
+Reconstruction and representation of 3D objects with radial basis
+functions.
+\emph{SIGGRAPH}, 2001.
+
+\bibitem{ohtake2003}
+Y.~Ohtake, A.~Belyaev, M.~Alexa, G.~Turk, and H.-P.~Seidel.
+Multi-level partition of unity implicits.
+\emph{SIGGRAPH}, 2003.
+
+\bibitem{pan2011}
+R.~Pan and V.~Skala.
+A two-level approach to implicit surface modeling with compactly
+supported radial basis functions.
+\emph{Engineering with Computers}, 27(3), 2011. arXiv:1708.06695.
+
+\bibitem{lian2025}
+X.~Lian, Q.~Zhang, and L.~Chen.
+SE-RBFNet: ellipsoidal radial basis functions for signed distance
+field approximation.
+\emph{arXiv:2505.02350}, 2025.
+
+\bibitem{zhang2025}
+J.~Zhang and P.~Wonka.
+efunc: an RBF-interpolated polynomial representation without neural
+networks.
+\emph{arXiv:2505.21319}, 2025.
+
+\bibitem{weiherer2025}
+F.~Weiherer and B.~Egger.
+Mat\'ern kernels for tunable implicit surface reconstruction.
+\emph{ICLR}, 2025. arXiv:2409.15466.
+
+\bibitem{cho2026}
+J.~Cho and J.~Park.
+Escaping spectral bias without backpropagation: fast implicit neural
+representations with extreme learning machines.
+\emph{arXiv:2602.07603}, 2026.
+
+\bibitem{dai2026}
+S.~Dai, C.~Liu, and Y.~Zhang.
+Kernel-SDF: real-time signed distance field estimation via kernel
+regression.
+\emph{IEEE Robotics and Automation Letters}, 2026. arXiv:2603.29227.
+
+\bibitem{zozoulenko2025}
+O.~Zozoulenko and F.~Ekstr\"om.
+Representation boosting: closed-form additive representations for
+regression and classification.
+\emph{arXiv:2501.xxxx}, 2025.
+
+\bibitem{s2mdf2026}
+Scene-level implicit representations with signed distance fields.
+\emph{arXiv}, 2026.
+
+\bibitem{shapley1953}
+L.~S.~Shapley.
+A value for n-person games.
+\emph{Contributions to the Theory of Games}, 2, 1953.
+
+\bibitem{mallatzhang1993}
+S.~G.~Mallat and Z.~Zhang.
+Matching pursuits with time-frequency dictionaries.
+\emph{IEEE Transactions on Signal Processing}, 41(12), 1993.
+
+\bibitem{aharon2006}
+M.~Aharon, M.~Elad, and A.~Bruckstein.
+K-SVD: an algorithm for designing overcomplete dictionaries for
+sparse representation.
+\emph{IEEE Transactions on Signal Processing}, 54(11), 2006.
+
+\bibitem{mairal2010}
+J.~Mairal, F.~Bach, J.~Ponce, and G.~Sapiro.
+Online learning for matrix factorization and sparse coding.
+\emph{JMLR}, 11, 2010.
+
+\bibitem{darcet2023}
+T.~Darcet, M.~Oquab, J.~Mairal, and P.~Bojanowski.
+Vision transformers need registers.
+\emph{ICLR}, 2024.
+
+\bibitem{nanda2023}
+N.~Nanda, L.~Chan, T.~Lieberum, J.~Smith, and J.~Steinhardt.
+Progress measures for grokking via mechanistic interpretability.
+\emph{ICLR}, 2023.
+
+\bibitem{tancik2020}
+M.~Tancik, P.~P.~Srinivasan, B.~Mildenhall, S.~Fridovich-Keil,
+N.~Raghavan, U.~Singhal, R.~Ramamoorthi, J.~T.~Barron, and R.~Ng.
+Fourier features let networks learn high frequency functions in low
+dimensional domains.
+\emph{NeurIPS}, 2020.
+
+\bibitem{park2019}
+J.~J.~Park, P.~Florence, J.~Straub, R.~Newcombe, and S.~Lovegrove.
+DeepSDF: learning continuous signed distance functions for shape
+representation.
+\emph{CVPR}, 2019.
+
+\bibitem{sitzmann2019meta}
+V.~Sitzmann, E.~R.~Chan, R.~Tucker, N.~Snavely, and G.~Wetzstein.
+MetaSDF: meta-learning signed distance functions.
+\emph{NeurIPS}, 2020.
+
+\bibitem{sitzmann2020}
+V.~Sitzmann, J.~N.~P.~Martel, A.~W.~Bergman, D.~B.~Lindell, and
+G.~Wetzstein.
+Implicit neural representations with periodic activation functions.
+\emph{NeurIPS}, 2020.
+
+\bibitem{he2016}
+K.~He, X.~Zhang, S.~Ren, and J.~Sun.
+Deep residual learning for image recognition.
+\emph{CVPR}, 2016.
+
+\bibitem{adam2015}
+D.~P.~Kingma and J.~Ba.
+Adam: a method for stochastic optimization.
+\emph{ICLR}, 2015.
+
+\bibitem{modulartransformers2023}
+W.~Zhou, R.~Le~Bras, and Y.~Choi.
+Modular transformers: compressing transformers into modularized
+layers for flexible efficient inference.
+\emph{ACL Findings}, 2023. arXiv:2306.02379.
+
+\bibitem{cald2025}
+M.~He and P.~N.~Garner.
+Joint fine-tuning and conversion of pretrained speech and language
+models towards linear complexity.
+\emph{ICLR}, 2025. arXiv:2410.06846.
+
+\bibitem{shortgpt2024}
+X.~Men, M.~Xu, Q.~Zhang, B.~Wang, H.~Lin, Y.~Lu, X.~Han, and
+W.~Chen.
+ShortGPT: layers in large language models are more redundant than
+you expect.
+\emph{arXiv:2403.03853}, 2024.
+
+\bibitem{selfdataddistill2025}
+V.~Thangarasa, G.~Venkatesh, M.~Lasby, N.~Sinnadurai, and S.~Lie.
+Self-data distillation for recovering quality in pruned large
+language models.
+\emph{MLSys}, 2025. arXiv:2410.09982.
+
+\bibitem{ghostedlayers2026}
+Ghosted layers: unconstrained activation alignment for recovering
+layer-pruned LLMs.
+\emph{arXiv:2605.15491}, 2026.
+
+\bibitem{replaceme2025}
+D.~Shopkhoev et al.
+ReplaceMe: network simplification via depth pruning and
+transformer block linearization.
+\emph{arXiv:2505.02819}, 2025.
+
+\bibitem{shiftllm2026}
+SHIFT-LLM: distribution shift correction in depth-pruned LLMs.
+\emph{arXiv:2608.25068}, 2026.
+
+\bibitem{subfit2026}
+E.~Cunegatti et al.
+From layers to submodules: rethinking granularity in
+replacement-based LLM compression.
+\emph{arXiv:2606.02559}, 2026.
+
+\bibitem{dunefsky2024}
+J.~Dunefsky, P.~Chlenski, and N.~Nanda.
+Transcoders find interpretable LLM feature circuits.
+\emph{NeurIPS}, 2024. arXiv:2406.11944.
+
+\bibitem{ameisen2025}
+E.~Ameisen, J.~Lindsey, A.~Pearce, et al.
+Circuit tracing: revealing computational graphs in language
+models.
+\emph{Transformer Circuits Thread}, 2025.
+
+\bibitem{cltvit2026}
+Can cross-layer transcoders replace vision transformer
+activations? An interpretable perspective on vision.
+\emph{arXiv:2604.13304}, 2026.
+
+\bibitem{ghorbani2020}
+A.~Ghorbani and J.~Zou.
+Neuron Shapley: discovering the responsible neurons.
+\emph{NeurIPS}, 2020. arXiv:2002.09815.
+
+\bibitem{domingos2020}
+P.~Domingos.
+Every model learned by gradient descent is approximately a kernel
+machine.
+\emph{arXiv:2012.00152}, 2020.
+
+\bibitem{huang2006}
+G.-B.~Huang, Q.-Y.~Zhu, and C.-K.~Siew.
+Extreme learning machine: theory and applications.
+\emph{Neurocomputing}, 70(1--3):489--501, 2006.
+
+\bibitem{jacot2018}
+A.~Jacot, F.~Gabriel, and C.~Hongler.
+Neural tangent kernel: convergence and generalization in neural
+networks.
+In \emph{Advances in Neural Information Processing Systems}, 2018.
+
+\bibitem{geva2021}
+M.~Geva, R.~Schuster, J.~Berant, and O.~Levy.
+Transformer feed-forward layers are key-value memories.
+\emph{EMNLP}, 2021. arXiv:2012.14913.
+
+\bibitem{hedgehog2024}
+M.~Zhang, K.~Bhatia, H.~Kumbong, and C.~R\'e.
+The Hedgehog and the Porcupine: expressive linear attentions with
+softmax mimicry.
+\emph{ICLR}, 2024. arXiv:2402.04347.
+
+\bibitem{supra2024}
+J.~Mercat, I.~Vasiljevic, S.~Keh, K.~Arora, A.~Dave, A.~Gaidon,
+and T.~Kollar.
+Linearizing large language models.
+\emph{arXiv:2405.06640}, 2024.
+
+\bibitem{lolcats2024}
+M.~Zhang, S.~Arora, R.~Chalamala, A.~Wu, B.~Spector, A.~Singhal,
+K.~Ramesh, and C.~R\'e.
+LoLCATs: on low-rank linearizing of large language models.
+\emph{arXiv:2410.10254}, 2024.
+
+\bibitem{cubit2026}
+Cubit: token mixer with kernel ridge regression.
+\emph{arXiv:2605.06501}, 2026.
+
+\bibitem{submodlin2025}
+Leveraging submodule linearity enhances task arithmetic
+performance in LLMs.
+\emph{arXiv:2504.10902}, 2025.
+
+\bibitem{kvgraft2026}
+Smarter and cheaper at once: byte-exact KV-cache grafting turns a
+frozen small model into a verified-knowledge flywheel.
+\emph{arXiv:2607.14431}, 2026.
+
+\bibitem{slicegpt2024}
+S.~Ashkboos, M.~L.~Croci, M.~Gennari~do~Nascimento, T.~Hoefler,
+and J.~Hensman.
+SliceGPT: compress large language models by deleting rows and
+columns.
+\emph{ICLR}, 2024. arXiv:2401.15024.
+
+\bibitem{sun2024massive}
+M.~Sun, X.~Chen, J.~Z.~Kolter, and Z.~Liu.
+Massive activations in large language models.
+\emph{COLM}, 2024. arXiv:2402.17762.
+
+\bibitem{shiexplain2026}
+Z.~Shi, Z.~Wang, F.~Yang, Q.~Wang, and R.~Tang.
+A single layer to explain them all: understanding massive
+activations in large language models.
+\emph{arXiv:2605.08504}, 2026.
+
+\bibitem{ramanoutlier2025}
+R.~Raman, K.~Sharma, and S.~Q.~Zhang.
+Rethinking the outlier distribution in large language models: an
+in-depth study.
+\emph{arXiv:2505.21670}, 2025.
+
+\bibitem{h2o2023}
+Z.~Zhang, Y.~Sheng, T.~Zhou, T.~Chen, L.~Zheng, R.~Cai, Z.~Song,
+Y.~Tian, C.~R\'e, C.~Barrett, Z.~Wang, and B.~Chen.
+H$_2$O: heavy-hitter oracle for efficient generative inference of
+large language models.
+\emph{NeurIPS}, 2023. arXiv:2306.14048.
+
+\bibitem{vllm2023}
+W.~Kwon, Z.~Li, S.~Zhuang, Y.~Sheng, L.~Zheng, C.~H.~Yu,
+J.~E.~Gonzalez, H.~Zhang, and I.~Stoica.
+Efficient memory management for large language model serving with
+PagedAttention.
+\emph{SOSP}, 2023. arXiv:2309.06180.
+
+\bibitem{lmcache2024}
+Y.~Liu et al.
+LMCache: LLM semantic caching with key-value compression.
+\emph{arXiv}, 2024.
+
+\bibitem{flexgen2023}
+Y.~Sheng, L.~Zheng, B.~Yuan, Z.~Li, M.~Ryabinin, B.~Chen,
+P.~Liang, C.~R\'e, I.~Stoica, and C.~Zhang.
+FlexGen: high-throughput generative inference of large language
+models with a single GPU.
+\emph{ICML}, 2023. arXiv:2303.06865.
+
+\bibitem{snapkv2024}
+Y.~Li, Y.~Huang, B.~Yang, B.~Venkitesh, A.~Locatelli, H.~Ye,
+T.~Cai, P.~Lewis, and D.~Chen.
+SnapKV: LLM knows what you are looking for before generation.
+\emph{NeurIPS}, 2024. arXiv:2404.14469.
+
+\bibitem{arthur2007}
+D.~Arthur and S.~Vassilvitskii.
+k-means++: the advantages of careful seeding.
+\emph{SODA}, 2007.
+
+\bibitem{barnes1986}
+J.~Barnes and P.~Hut.
+A hierarchical O(N log N) force-calculation algorithm.
+\emph{Nature}, 324, 1986.
+
+\bibitem{bengio2015}
+S.~Bengio, O.~Vinyals, N.~Jaitly, and N.~Shazeer.
+Scheduled sampling for sequence prediction with recurrent neural
+networks.
+\emph{NeurIPS}, 2015. arXiv:1506.03099.
+
+\bibitem{holtzman2020}
+A.~Holtzman, J.~Buys, L.~Du, M.~Forbes, and Y.~Choi.
+The curious case of neural text degeneration.
+\emph{ICLR}, 2020. arXiv:1904.09751.
+
+\bibitem{voita2019}
+E.~Voita, D.~Talbot, F.~Moiseev, R.~Sennrich, and I.~Titov.
+Analyzing multi-head self-attention: specialized heads do the
+heavy lifting, the rest can be pruned.
+\emph{ACL}, 2019. arXiv:1905.09418.
+
+\bibitem{vyas2020clustered}
+A.~Vyas, A.~Katharopoulos, and F.~Fleuret.
+Fast transformers with clustered attention.
+\emph{NeurIPS}, 2020. arXiv:2007.04825.
+
+\bibitem{entezari2021}
+R.~Entezari, H.~Sedghi, O.~Saukh, and B.~Neyshabur.
+The role of permutation invariance in linear mode connectivity
+of neural networks.
+\emph{ICLR}, 2022. arXiv:2110.06296.
+
+\bibitem{ainsworth2023}
+S.~Ainsworth, J.~Hayase, and S.~Srinivasa.
+Git Re-Basin: merging models modulo permutation symmetries.
+\emph{ICLR}, 2023. arXiv:2209.04836.
+
+\bibitem{singh2020}
+S.~P.~Singh and M.~Jaggi.
+Model fusion via optimal transport.
+\emph{NeurIPS}, 2020. arXiv:1910.05653.
+
+\bibitem{settles2009}
+B.~Settles.
+Active learning literature survey.
+University of Wisconsin--Madison Computer Sciences Technical
+Report 1648, 2009.
+
+\end{thebibliography}
+
+\end{document}
