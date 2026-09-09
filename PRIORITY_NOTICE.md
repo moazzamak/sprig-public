@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`68d5601b858aeeeb06f01796779da81230be088e1f0551f92f1f901b0b236693`),
+`f703a4d1a7cbcaca0ab85eaf41a65614c8708a3cc0fb027e735c9a317163276a`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -37,7 +37,11 @@ evidence sealed); r10 (this commit: the closed-form field
 classifier bounded - 36.1 percent against the convnet's 56.4
 at matched parameters across all four registered levers;
 known-limit 12 states the bound; V-E1 series evidence
-sealed).
+sealed); r11 (this commit: readability and prior-art delta
+pass - integration-back passages restated as measured deltas
+over the linear-probe, deep-supervision, dataset-cartography,
+and self-distillation lines, twelve citations added; internal
+cell codes replaced by descriptive names; claims unchanged).
 
 ## Claims
 

@@ -56,8 +56,8 @@ A trained deep network is one opaque object. No standard method
 says which training example produced which part of an output, so a
 contribution cannot be priced; two trained networks cannot be added
 into a better one; and new data means retraining the whole. This
-report describes additive networks --- the family this report names
-SprigFields, a working name --- in which every stage is a frozen
+report describes additive networks, the family this report names
+SprigFields, a working name, in which every stage is a frozen
 basis read out by one ridge regression, a regularized linear
 least-squares solve, the same calculation as fitting a line through
 points, in high dimension. Nothing is trained at use time, replay
@@ -380,9 +380,9 @@ Section 4.6.
 
 \subsection{The construction space and the equivalence result}
 
-The cell index names every construction family: B, fixed-basis
-cells; C, adaptive or coordinated cells; D, cells over a frozen
-symbol library; T and DS, trained baselines. Three readings from
+The construction families are the fixed-basis forms, the
+adaptive or coordinated forms, the frozen-symbol-library forms,
+and the trained baselines. Three readings from
 the construction space matter. A pure bump sum over a zero coarse
 field reaches 0.290 near-surface error but breaks the far field at
 1.347 full-field RMSE, because bumps decay. The carrier cell fixes
@@ -401,44 +401,45 @@ families nor coordination registers closed it.
 \small
 \begin{tabular}{lcccc}
 \toprule
-Cell & Near & Zero-set & Full & Ratio vs T3 \\
+Construction & Near & Zero-set & Full & $\times$ residual net \\
 \midrule
-B1 \;\; greedy bumps           & 0.290 & 0.905 & 1.347 & 5.27 \\
-B5 \;\; joint bumps            & 0.174 & 0.899 & 1.127 & 3.16 \\
-B6 \;\; joint bumps + Fourier  & 0.187 & 0.865 & \textbf{0.164} & 3.39 \\
-T1 \;\; small MLP              & 0.151 & 0.933 & 0.110 & 2.75 \\
-T2 \;\; plain deep             & 0.167 & 0.905 & 1.136 & 3.04 \\
-T3 \;\; deep residual          & \textbf{0.055} & \textbf{0.987} & 0.054 & 1.00 \\
+Greedy bumps                 & 0.290 & 0.905 & 1.347 & 5.27 \\
+Joint bumps                  & 0.174 & 0.899 & 1.127 & 3.16 \\
+Joint bumps + Fourier        & 0.187 & 0.865 & \textbf{0.164} & 3.39 \\
+Small MLP (trained)          & 0.151 & 0.933 & 0.110 & 2.75 \\
+Plain deep net (trained)     & 0.167 & 0.905 & 1.136 & 3.04 \\
+Deep residual net (trained)  & \textbf{0.055} & \textbf{0.987} & 0.054 & 1.00 \\
 \bottomrule
 \end{tabular}
-\caption{The equivalence result. Joint least squares (B5) closes
-most of the gap; a global Fourier basis (B6) fixes the far field.}
+\caption{The equivalence result. Joint least squares closes
+most of the gap; a global Fourier basis fixes the far field.}
 \label{tab:equivalence}
 \end{table}
 
 \subsection{The regularization lever}
 
-Two cells completed the accuracy story. D2, a frozen random
-library of 178 affine symbols read out by one joint ridge with a
-fixed small penalty, reaches 0.073 near-surface error, 1.32 times
-the trained net, verified across four seeds. D3 adds the carrier
-and the cross-validated penalty, with library centers
-importance-sampled by residual magnitude, and reaches 0.0486 near
-and 0.052 full-field against the trained net's 0.0551 and 0.054.
+Two levers completed the accuracy story. The fixed-penalty form,
+a frozen random library of 178 affine symbols read out by one
+joint ridge with a small fixed penalty, reaches 0.073
+near-surface error, 1.32 times the trained net, verified across
+four seeds. The joint-accurate stage adds the carrier and the
+cross-validated penalty, with library centers importance-sampled
+by residual magnitude, and reaches 0.0486 near and 0.052
+full-field against the trained net's 0.0551 and 0.054.
 This is the single-stage construction that beats the trained deep
 residual net on both metrics with one deterministic ridge solve and
-no training. The 3 to 8 times wall was a hyperparameter.
+no training. The apparent 3 to 8 times wall was a hyperparameter.
 
 \begin{table}[t]
 \centering
 \small
 \begin{tabular}{lccc}
 \toprule
-Cell & Near & Full & Ratio vs T3 (near) \\
+Construction & Near & Full & $\times$ residual net (near) \\
 \midrule
-D2 \;\; random library, fixed lambda & 0.073 & 0.136 & 1.32 \\
-D3 \;\; carrier + weighted library + CV lambda & \textbf{0.0486} & \textbf{0.052} & \textbf{0.88} \\
-T3 \;\; trained deep residual & 0.0551 & 0.054 & 1.00 \\
+Random library, fixed penalty & 0.073 & 0.136 & 1.32 \\
+Carrier + weighted library + cross-validated penalty & \textbf{0.0486} & \textbf{0.052} & \textbf{0.88} \\
+Trained deep residual net & 0.0551 & 0.054 & 1.00 \\
 \bottomrule
 \end{tabular}
 \caption{The regularization lever: cross-validated ridge lambda on
@@ -448,14 +449,14 @@ top of the carrier and the random library beats the trained net.}
 
 \subsection{Synthetic transfer}
 
-One shape family and one regime is not a result, so D3 was
-re-measured across eight configurations: shape families with 5, 12,
-and 20 primitives; an elongated family; a sparse family; the
-small-data regime at 1{,}500 points; high input noise; and partial
-observation, where surface samples come from half the primitives
-and the model must infer the unseen half. D3 beats the trained
-residual net on near-surface error in all eight configurations, at
-ratios 0.73 to 0.91.
+One shape family and one regime is not a result, so the
+joint-accurate stage was re-measured across eight configurations:
+shape families with 5, 12, and 20 primitives; an elongated family;
+a sparse family; the small-data regime at 1{,}500 points; high
+input noise; and partial observation, where surface samples come
+from half the primitives and the model must infer the unseen half.
+The stage beats the trained residual net on near-surface error in
+all eight configurations, at ratios 0.73 to 0.91.
 
 \subsection{Real data: ModelNet10 and ModelNet40}
 
@@ -463,9 +464,9 @@ The construction was tested on 59 real meshes from two standard
 benchmarks, using the true signed distance to each mesh in a
 near-surface band of 0.1 times the normalized extent, at 6{,}000
 training points per shape. Four fields are fit per shape: the first
-stage alone (D3), the two-stage weighted recipe (D3+), the trained
-residual net (T3), and the DeepSDF-class network (DS), the trained
-arms counted only where they reach their convergence floor. The
+stage alone, the two-stage weighted recipe, the trained residual
+net, and the DeepSDF-class network, the trained arms counted only
+where they reach their convergence floor. The
 residual net reaches the floor on 23 of 59 shapes; the DeepSDF
 network on 53 of 59.
 
@@ -477,21 +478,21 @@ network on 53 of 59.
 Comparison & Dataset & Converged & Strict & Within & Median \\
            &         & shapes    & wins   & 1.3$\times$ & ratio \\
 \midrule
-D3+ vs T3 & ModelNet10 & 8  & 8/8   & 8/8   & 0.44 \\
+Two-stage vs residual & ModelNet10 & 8  & 8/8   & 8/8   & 0.44 \\
           & ModelNet40 & 15 & 15/15 & 15/15 & 0.39 \\
           & All        & 23 & 23/23 & 23/23 & 0.42 \\
-D3 vs T3  & All        & 23 & 22/23 & 23/23 & 0.56 \\
+One-stage vs residual & All        & 23 & 22/23 & 23/23 & 0.56 \\
 \midrule
-D3+ vs DS & ModelNet10 & 17 & 6/17  & 14/17 & 1.13 \\
+Two-stage vs DeepSDF & ModelNet10 & 17 & 6/17  & 14/17 & 1.13 \\
           & ModelNet40 & 36 & 9/36  & 26/36 & 1.18 \\
           & All        & 53 & 15/53 & 40/53 & 1.15 \\
-D3 vs DS  & All        & 53 & 0/53  & 3/53  & 1.65 \\
+One-stage vs DeepSDF & All        & 53 & 0/53  & 3/53  & 1.65 \\
 \bottomrule
 \end{tabular}
 \caption{Real-data transfer on ModelNet10 and ModelNet40,
-near-surface RMSE. D3+ is the two-stage weighted recipe, D3 its
-first stage alone, T3 the trained deep residual net, DS the
-DeepSDF-class network, each trained arm counted only on shapes
+near-surface RMSE. The two-stage weighted recipe, its first stage
+alone, the trained deep residual net, and the DeepSDF-class
+network are compared, each trained arm counted only on shapes
 where it reaches the convergence floor.}
 \label{tab:real}
 \end{table}
@@ -508,7 +509,7 @@ GPU and 2.1 megabytes.
 
 \subsection{The property set}
 
-Each property was measured on the D3 construction and re-measured
+Each property was measured on the joint-accurate stage and re-measured
 where it mattered on the two-stage recipe.
 
 \textbf{Attribution and replay hold.} The field is a literal sum,
@@ -521,10 +522,10 @@ rule is the network's single Shapley rule \cite{shapley1953},
 applied at the level of whole field codes, never at the level of
 800 symbols inside a code, where an exact Shapley value is not
 computable. Replay is bit-identical by construction and verified
-for every closed-form cell.
+for every closed-form construction.
 
 \textbf{Growth economy does not hold for the accurate recipe.}
-Growing the D3 library in data windows and re-solving the ridge
+Growing the joint-accurate stage's library in data windows and re-solving the ridge
 moves old symbol amplitudes by a mean of 2.9 to 10.7 times across
 windows, and up to 1{,}664 times at the maximum, while held-out
 error improves monotonically: the reorganization is the mechanism
@@ -535,7 +536,7 @@ stage and improves near-surface error on every one of 102
 shape-and-budget rows.
 
 \textbf{Composition by un-gated summation fails; region-gated
-summation composes.} Two independent D3 stacks summed un-gated are
+summation composes.} Two independent joint-accurate stacks summed un-gated are
 five times worse than either half; a shared scene-level carrier
 does not fix it, because each stack's broad random features
 extrapolate large wrong offsets outside the region they were fitted
@@ -558,11 +559,11 @@ them.
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lcc}
+\begin{tabular}{lp{4.1cm}p{4.1cm}}
 \toprule
- & Greedy-local (C13) & Joint-accurate (D3) \\
+ & Greedy-local regime & Joint-accurate stage \\
 \midrule
-Near-surface accuracy vs trained net & 4.84$\times$ & 0.42$\times$ (median, converged T3); 1.15$\times$ DeepSDF \\
+Near-surface accuracy vs trained net & 4.84$\times$ & 0.42$\times$ (median, residual net); 1.15$\times$ (DeepSDF) \\
 Attribution & holds & holds \\
 Replay & holds & holds \\
 Growth economy & holds & fails (drift) for a re-solved code; holds by a frozen second stage \\
@@ -1170,50 +1171,101 @@ failed stage is still isolated, its errors stay in its region,
 and its neighbors keep their contracts while it is rebuilt.
 
 \paragraph{The prediction: the instruments transfer back.}
-The epistemic layer is separable from the conversion, and the
-first part of that claim is measured rather than predicted. A
-conventionally trained network was audited without converting
-it: its activations were recorded, per-layer frozen-key
-surrogates were fitted on them in closed form, and per-patch
-error, coverage, and novelty were read against the original
-weights, an audit shadow that left training untouched and whose
-per-layer readings matched across devices exactly. The shadow
-transfers across modalities: on a trained vision transformer, a
-six-block ViT scoring 77.3 percent on CIFAR-10, the same
-frozen-key read fitted from each MLP block's own input stream
-reproduces every block at held-out $R^2$ 1.0, and substituting
-all six blocks with their stages leaves test accuracy exactly
-the network's own; the key-attribution ladder compresses it,
-0.7722 at three quarters of the keys, 0.7695 at half, 0.7519
-at a quarter, and 0.7235 at an eighth against the teacher's
-0.7732, the conversion exactness reproduced on a
-second modality at toy scale. The same
-logic yields two stronger integrations. The first is now
-measured: a closed-form refit of the network's own readout on
-the stream it actually produces, on a never-converted network,
-left the readout at least as good on the registered slice
-(perplexity 14.759 to 14.726), the serve-refit law detached
-from the conversion. The data-starvation sentence reads out on
-the same audited network: refit on increasing training slices,
-one flagged region's readout rose from 0.25 to 0.73 as rows
-grew from 2,000 to 40,000 (data-limited), while another stayed
-below zero at every size (genuinely unreadable), the two
-failure modes separated by measurement. The second is now
-measured at small
-scale: local least-squares targets inserted into training
-itself, the layerwise and fast-weight
-lineage \cite{schmidhuber1992, fahlman1990, ba2016, irie2021},
-gave a trained network's patches measured contracts as they
-were learned, at parity-or-better held-out quality once the
-target weight was large enough to matter (a small effect,
-measured on a word-level ladder), so that a trained network's
-patches acquire measured contracts as they are learned. All
-three parts of the prediction are thus measured at their
-registered scales, with the instruments named, the same
-discipline as the capabilities above:
-the per-patch instruments attach to any network; what requires
-the conversion is the frozen stage's closed-form lifetime, not
-the measurement.
+The per-patch instruments do not require the conversion. A
+conventionally trained network can be audited as it stands:
+record each layer's inputs and outputs, fit a frozen-key
+surrogate on them in closed form, and read error, coverage, and
+novelty per patch against the original weights. Nothing in the
+read alters the network. This is the audit shadow, and the first
+part of the prediction is measured rather than predicted. The
+shadow was run on the unconverted Qwen3-4B teacher, twenty
+layers read on CPU and on GPU through one shared arithmetic, and
+every reading matched across the two devices exactly.
+
+Probing is old, and it is not claimed here. Fitting per-layer
+readouts on a trained network's activations to watch its layers
+is the linear-probe line of Alain and Bengio \cite{alain2016},
+carried forward by the BERT probing tradition \cite{tenney2019}.
+What the shadow adds is the instrument set and the discipline,
+not the probe. The surrogate is a closed-form ridge readout with
+no optimizer, and the three readings, fit error, coverage, and
+novelty, are attached to named regions of a named layer, with
+the same numbers reproduced exactly across devices.
+
+The shadow transfers across modalities. On a trained vision
+transformer, a six-block ViT scoring 77.3 percent on CIFAR-10,
+the same frozen-key read is fitted from each MLP block's own
+input stream, and every block reproduces at held-out $R^2$ 1.0.
+Substituting all six blocks with their stages leaves test
+accuracy exactly the network's own, 0.7732 against 0.7732. The
+key-attribution ladder then compresses the substituted network:
+0.7722 at three quarters of the keys, 0.7695 at half, 0.7519 at
+a quarter, and 0.7235 at an eighth. The reading is that the
+construction leans on nothing specific to language: its input is
+a layer's recorded input and output, whatever the modality. The
+vision MLP is in fact more compressible than the language
+feed-forward network, whose ladder falls to 0.64 and 0.52 at
+the same two points.
+
+The serve-refit law is the second part, and it is measured on
+the same audited network. The readout that turns hidden states
+into word probabilities, the model's output head, is refit in
+closed form on the stream the network actually produces when it
+generates text on its own, one ridge solve with no gradient
+steps. On the registered slice the refit moves perplexity from
+14.759 to 14.726. It never hurts and slightly helps, and that
+is the law: the readout can be brought to its serving
+distribution at any time, at no measured loss. Training a model
+on its own outputs is self-distillation \cite{furlanello2018,
+zhang2019byot}, adapting on its own stream is test-time
+training \cite{sun2020ttt} and TENT \cite{wang2021tent}, and
+retraining only the output map of a fixed network is adversarial
+reprogramming \cite{elsayed2019}. The delta is the mechanism
+and the claim: closed form, not gradient descent, and a
+maintenance reading, not a quality gain.
+
+The data-starvation sentence reads out on the same audit. The
+residual map names regions, and the sentence separates the two
+reasons a region can be weak: the data is thin, or the function
+is unreadable. The test is mechanical. Refit a flagged region's
+readout on growing training slices and watch the held-out score.
+One region rose from 0.25 to 0.73 as rows grew from 2,000 to
+40,000; it was data-limited. Another stayed below zero at every
+size; it was genuinely unreadable. The two failure modes are
+separated by measurement, not by judgment. Diagnosing data
+through model behavior is dataset cartography
+\cite{swayamdipta2020} and datamodels \cite{ilyas2022}. The
+delta is the granularity and the instrument: the sentence is per
+region, and the instrument is the closed-form surrogate's fit
+error and coverage, not the trained network's training dynamics.
+
+The third part reaches into training itself. Local least-squares
+targets are inserted into a training run: at fixed intervals a
+per-layer ridge target is fitted on a recent window of that
+layer's activations, and the layer is pulled toward it. At a
+weak target weight the term is a whisper and quality is
+unchanged. When the weight reaches about one percent of the
+loss, the measured result appears: held-out quality at parity or
+better, and the per-layer contracts measurably cleaner, a small
+effect on a word-level ladder. Giving individual layers their
+own objectives is deep supervision \cite{lee2015}, greedy
+layerwise training \cite{belilovsky2019}, and local error
+signals \cite{nokland2019}. The delta is the form of the
+target: a closed-form ridge on a rolling window, no gradient
+companion head, with the cleanliness of the resulting contracts
+read by the same instrument that audits a converted network.
+
+All three parts of the prediction are measured at their
+registered scales, with the instruments named, and the
+discipline is the same as everywhere else in this report. What
+is not claimed: linear probing is not new, intermediate
+training objectives are not new, and diagnosing data through a
+model is not new; each line is cited above. What is claimed is
+the measured composition: the closed-form instrument set, the
+device-exact discipline, and the transfer-back from the
+converted form to the trained form. The instruments attach to
+any network; what requires the conversion is the frozen stage's
+closed-form lifetime, not the measurement.
 
 % ==================================================================
 \section{Prior art and position}
@@ -1352,6 +1404,26 @@ fields; the ablation-faithfulness test is adopted and registered.
 Component-level Shapley values with efficient estimation are
 Neuron Shapley \cite{ghorbani2020}; this report applies Shapley
 at the level of whole codes.
+
+The transfer-back line. Reading a trained network's layers with
+fitted probes is Alain and Bengio \cite{alain2016} and the
+probing tradition \cite{tenney2019}. Supervising hidden layers
+with local objectives during training is deep supervision
+\cite{lee2015}, greedy layerwise training \cite{belilovsky2019},
+and local error signals \cite{nokland2019}. Diagnosing data
+through model behavior is dataset cartography
+\cite{swayamdipta2020} and datamodels \cite{ilyas2022}.
+Refitting a model's readout on its own outputs is
+self-distillation \cite{furlanello2018, zhang2019byot} and
+test-time adaptation \cite{sun2020ttt, wang2021tent}, with
+adversarial reprogramming \cite{elsayed2019} as the
+retrain-only-the-output-map ancestor. None of these lines is
+claimed as new; each is cited where its transfer-back passage
+is measured in Section 6.6. The report's delta is the measured
+composition: the surrogate is one closed-form ridge solve with
+no optimizer anywhere in the audit, the readings attach to
+named regions of named layers, and the transfer is measured at
+the registered gates rather than asserted.
 
 The attention-linearization line. Hedgehog \cite{hedgehog2024},
 SUPRA \cite{supra2024}, and LoLCATs \cite{lolcats2024} convert a
@@ -1553,17 +1625,24 @@ The limits are stated as precisely as the capabilities.
 12. The closed-form field classifier is measured and bounded.
     The ellipsoid-mixture idea, fields over pixel coordinates
     evaluated instead of convolutions, was tested at matched
-    parameters on CIFAR-10: per-class soft-density mixtures over
-    position and color score 36.1 percent against a converged
-    parameter-matched convnet's 56.4, and none of the registered
-    construction levers (a closed-form discriminative readout,
-    patch-relative coordinates, patch descriptors) recovers the
-    gap; the descriptor form is shift-robust, with no shifted-
-    test drop, but capacity-bound at this scale. The vision
-    deliverable is therefore the conversion track: a trained
-    vision transformer's MLP blocks reproduce at held-out $R^2$
-    1.0 and substituting all six blocks leaves test accuracy
-    exactly the network's own.
+    parameters on CIFAR-10. Each class is a soft density mixture
+    over position and color, one ridge readout per class. It
+    scores 36.1 percent against a converged parameter-matched
+    convnet's 56.4 percent, a gap of about 20 points at equal
+    parameter count. The reading: matched parameters do not buy
+    matched structure. The convnet's parameters are shared
+    filters applied across positions, while the mixture's
+    parameters sit in per-class ellipsoid centers and spreads,
+    and none of the registered construction levers (a closed-form
+    discriminative readout, patch-relative coordinates, patch
+    descriptors) recovers the gap. The descriptor form is
+    shift-robust, with no shifted-test drop, but capacity-bound
+    at this scale. The vision deliverable is therefore the
+    conversion track: a trained vision transformer's MLP blocks
+    reproduce at held-out $R^2$ 1.0, substituting all six
+    blocks leaves test accuracy exactly the network's own, and
+    the key-attribution ladder compresses it along the measured
+    curve of Section 6.6.
 
 % ==================================================================
 \section{Integration into GEODE}
@@ -2244,6 +2323,73 @@ B.~Settles.
 Active learning literature survey.
 University of Wisconsin--Madison Computer Sciences Technical
 Report 1648, 2009.
+
+\bibitem{alain2016}
+G.~Alain and Y.~Bengio.
+Understanding intermediate layers using linear classifier
+probes.
+\emph{ICLR workshop}, 2017. arXiv:1610.01644.
+
+\bibitem{tenney2019}
+I.~Tenney, D.~Das, and E.~Pavlick.
+BERT rediscovers the classical NLP pipeline.
+\emph{ACL}, 2019. arXiv:1905.05950.
+
+\bibitem{lee2015}
+C.-Y.~Lee, S.~Xie, P.~Gallagher, Z.~Zhang, and Z.~Tu.
+Deeply-supervised nets.
+\emph{AISTATS}, 2015. arXiv:1409.5185.
+
+\bibitem{belilovsky2019}
+E.~Belilovsky, M.~Eickenberg, and E.~Oyallon.
+Greedy layerwise learning can scale to ImageNet.
+\emph{ICML}, 2019. arXiv:1812.11446.
+
+\bibitem{nokland2019}
+A.~N{\o}kland and L.~H.~Eidnes.
+Training neural networks with local error signals.
+\emph{ICML}, 2019. arXiv:1901.06656.
+
+\bibitem{swayamdipta2020}
+S.~Swayamdipta, R.~Schwartz, N.~Lourie, Y.~Wang,
+H.~Hajishirzi, N.~A.~Smith, and Y.~Choi.
+Dataset cartography: mapping and diagnosing datasets with
+training dynamics.
+\emph{EMNLP}, 2020. arXiv:2009.10795.
+
+\bibitem{ilyas2022}
+A.~Ilyas, S.~M.~Park, L.~Engstrom, G.~Leclerc, and A.~Madry.
+Datamodels: understanding predictions with data and data with
+predictions.
+\emph{ICML}, 2022. arXiv:2202.00622.
+
+\bibitem{furlanello2018}
+T.~Furlanello, Z.~C.~Lipton, M.~Tschannen, L.~Itti, and
+A.~Anandkumar.
+Born-again neural networks.
+\emph{ICML}, 2018. arXiv:1805.04770.
+
+\bibitem{zhang2019byot}
+L.~Zhang, J.~Song, A.~Gao, J.~Chen, C.~Bao, and K.~Ma.
+Be your own teacher: improve the performance of convolutional
+neural networks via self distillation.
+\emph{ICCV}, 2019. arXiv:1905.08094.
+
+\bibitem{sun2020ttt}
+Y.~Sun, X.~Wang, Z.~Liu, J.~Miller, A.~Efros, and M.~Hardt.
+Test-time training with self-supervision for generalization
+under distribution shifts.
+\emph{ICML}, 2020. arXiv:1909.13231.
+
+\bibitem{wang2021tent}
+D.~Wang, E.~Shelhamer, S.~Liu, B.~Olshausen, and T.~Darrell.
+Tent: fully test-time adaptation by entropy minimization.
+\emph{ICLR}, 2021. arXiv:2006.10726.
+
+\bibitem{elsayed2019}
+G.~F.~Elsayed, I.~Goodfellow, and J.~Sohl-Dickstein.
+Adversarial reprogramming of neural networks.
+\emph{ICLR}, 2019. arXiv:1806.11146.
 
 \end{thebibliography}
 
