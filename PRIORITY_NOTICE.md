@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`f703a4d1a7cbcaca0ab85eaf41a65614c8708a3cc0fb027e735c9a317163276a`),
+`59bdb07278a6e8f32f101632be97728383b8cb4a3ea3c0e3908cd0bbfcfdac43`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -41,7 +41,12 @@ sealed); r11 (this commit: readability and prior-art delta
 pass - integration-back passages restated as measured deltas
 over the linear-probe, deep-supervision, dataset-cartography,
 and self-distillation lines, twelve citations added; internal
-cell codes replaced by descriptive names; claims unchanged).
+cell codes replaced by descriptive names; claims unchanged);
+r12 (this commit: the transfer-back prediction framed as a
+registered composition claim over its cited ingredients; the
+serve-refit and training-target dose curves stated (2,300 vs
+36,500 stream tokens; the target-weight sweep); claims
+unchanged).
 
 ## Claims
 

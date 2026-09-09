@@ -1171,6 +1171,25 @@ failed stage is still isolated, its errors stay in its region,
 and its neighbors keep their contracts while it is rebuilt.
 
 \paragraph{The prediction: the instruments transfer back.}
+The prediction is a registration, not a claim of novelty. It
+was written before any of its three parts was measured, with
+the instruments named, so that each part could pass or fail on
+its own terms. Its ingredients are old, and each is cited where
+it appears below: the probe line, deep supervision, dataset
+cartography, self-distillation. What those lines do not
+establish is the composition measured here: one closed-form,
+no-optimizer instrument set attaching to an unconverted
+network and carrying the maintenance laws of the converted
+form. Each leg had a live failure mode, and each is stated
+with its measured dose. Nothing guaranteed that a second
+modality's blocks would reproduce at $R^2$ 1.0 or compress
+along the measured ladder. A head refit on a small stream
+measures worse before it measures better. A per-layer target
+worth less than about one percent of the loss either changes
+nothing or costs quality without cleaning a contract. The
+well-known part is the ingredients; the measured part is the
+composition and its boundaries.
+
 The per-patch instruments do not require the conversion. A
 conventionally trained network can be audited as it stands:
 record each layer's inputs and outputs, fit a frozen-key
@@ -1213,9 +1232,12 @@ into word probabilities, the model's output head, is refit in
 closed form on the stream the network actually produces when it
 generates text on its own, one ridge solve with no gradient
 steps. On the registered slice the refit moves perplexity from
-14.759 to 14.726. It never hurts and slightly helps, and that
-is the law: the readout can be brought to its serving
-distribution at any time, at no measured loss. Training a model
+14.759 to 14.726. On 2,300 stream tokens the same refit
+measures 0.49 worse; the law is a convergence statement, and
+the registered reading sits at 36,500 tokens, where the refit
+never hurts and slightly helps: the readout can be brought to
+its serving distribution at any time, at no measured loss.
+Training a model
 on its own outputs is self-distillation \cite{furlanello2018,
 zhang2019byot}, adapting on its own stream is test-time
 training \cite{sun2020ttt} and TENT \cite{wang2021tent}, and
@@ -1244,10 +1266,12 @@ targets are inserted into a training run: at fixed intervals a
 per-layer ridge target is fitted on a recent window of that
 layer's activations, and the layer is pulled toward it. At a
 weak target weight the term is a whisper and quality is
-unchanged. When the weight reaches about one percent of the
-loss, the measured result appears: held-out quality at parity or
-better, and the per-layer contracts measurably cleaner, a small
-effect on a word-level ladder. Giving individual layers their
+unchanged; in between, it costs a little held-out quality and
+cleans no contract. When the weight reaches about one percent
+of the loss, the measured result appears: held-out quality at
+parity or better, and the per-layer contracts measurably
+cleaner, a small effect on a word-level ladder. Giving
+individual layers their
 own objectives is deep supervision \cite{lee2015}, greedy
 layerwise training \cite{belilovsky2019}, and local error
 signals \cite{nokland2019}. The delta is the form of the
