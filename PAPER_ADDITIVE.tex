@@ -45,7 +45,7 @@
 language from scratch, and the conversion of a pretrained model}
 \author{Moazzam Abdullah Khan\\[0.4em]
 \large \href{https://github.com/moazzamak}{github.com/moazzamak}}
-\date{September 7, 2026}
+\date{September 10, 2026}
 
 \begin{document}
 
@@ -82,18 +82,23 @@ exactly on held-out rows ($R^2$ 1.0). A basis diagnosis shows why
 this is the one basis that can fit them: the layer's function
 varies along its 9,728 key directions, and bases that miss those
 directions top out near a third of the explained variance. Key
-attribution compresses the stages, and \oldsystem{a depth-adaptive budget
-serves all thirty-six feed-forward layers at battery parity with
-the teacher}. Attention becomes a retrieval carrier that keeps the
+attribution compresses the stages, and the staged feed-forward
+layers of Qwen3-4B serve from int8 packs, 2.4~GiB for all
+thirty-six layers, at battery parity with the teacher. Attention becomes a retrieval carrier that keeps the
 attention sink, a local band, and routed key clusters exact; four
 such carriers score 17.36 perplexity against the teacher's 17.28
-and pass the free-generation battery. \oldsystem{At full keys with
-native-dtype stage compute the converted network scores exactly
-the teacher's zero-shot accuracy, 0.5938 against 0.5938 on the
-same 256-question sample; the serving form, 0.89 of the key count
-with the serve-refit applied, scores 0.5547 on the same read,
-with the free-generation battery clear and the perplexity guard
-holding.}
+and pass the free-generation battery. The composed conversion,
+int8-pack stages with four wormhole carriers, scores 0.5547
+against the teacher's 0.5938 on the same 256-question sample,
+with the free-generation battery clear and perplexity 17.24
+against the teacher's 15.80 on the forty-thousand-token slice;
+the serving state is 2.4~GiB of packs plus a 0.14~MiB carrier,
+a 5.6~GiB resident against the unconverted model's 7.5~GiB,
+and an incremental carrier serves it at constant memory, flat at
+15 tokens per second from 1k to 8k context. \oldsystem{At full
+keys with native-dtype stage compute the converted network
+scores exactly the teacher's zero-shot accuracy, 0.5938 against
+0.5938 on the same 256-question sample.}
 
 No prior work converts a pretrained network into nonlinear
 closed-form stages that keep exact attribution, deterministic
@@ -103,9 +108,9 @@ least-squares linear maps for compression and claims none of
 those properties; the transcoder line gives additive attribution
 but trains its replacement and does not serve it. Every borrowed
 part is cited, and where a neighbouring method does something
-better, its adoption is planned and named. \oldsystem{Full conversion, all
-thirty-six layers, is measured and holds the battery at 0.89 of
-the key count.} The benefits also port back to unconverted,
+better, its adoption is planned and named. Full conversion, all
+thirty-six layers composed with the wormhole chain, is measured
+and holds the battery. The benefits also port back to unconverted,
 conventionally trained networks: the same closed-form reads give
 a trained network's patches measured per-layer contracts without
 any conversion, an audit shadow that matches across devices
@@ -843,24 +848,24 @@ layers nearest the band to full keys moved the binding read by
 one question of 256, indistinguishable from noise, so the budget
 stays where the band says.}
 
-The binding gates are closed-loop. \oldsystem{The fully converted network
-decodes five continuation prompts to coherent prose with no
-repetition failure; on the instructed multiple-choice battery it
-matches or beats the teacher on all four suites with zero
-unanswered rows. Zero-shot accuracy, the binding metric, is read
-on the same 256-question sample as the teacher: the serving
-form, 0.89 of the teacher's key count with the serve-refit
-applied, scores 0.5547 against the teacher's 0.5938, and the
-deficit sits in the mathematics subjects while the knowledge
-subjects score at or above the teacher. The deficit is
-compression, not mechanism: at full keys with native-dtype stage
-compute the converted network scores 0.5938 against 0.5938,
-exactly the teacher on every subject and every count. The dial
-between the endpoints is smooth, monotone in keys, and every
-point on it keeps the closed-loop properties. The perplexity
-non-regression guard holds on the serving form: 20.70 against
-the teacher's 17.59 in-run, below the registered structural}
-bar.
+The binding gates are closed-loop and re-read on the composed
+system of Section 6.4. The composed network decodes five
+continuation prompts to coherent prose with no repetition
+failure; on the instructed multiple-choice battery it matches or
+beats the teacher on all four suites with zero unanswered rows.
+Zero-shot accuracy, the binding metric, is read on the same
+256-question sample as the teacher: the composed serving form
+scores 0.5547 against the teacher's 0.5938, and the deficit sits
+in the mathematics subjects while the knowledge subjects score
+at or above the teacher. \oldsystem{The deficit is compression,
+not mechanism: at full keys with native-dtype stage compute and
+native attention the converted network scores 0.5938 against
+0.5938, exactly the teacher on every subject and every count.
+The dial between the endpoints is smooth, monotone in keys, and
+every point on it keeps the closed-loop properties.} The
+perplexity non-regression guard holds on the composed form:
+17.24 against the teacher's 15.80 in-run, below the registered
+structural bar.
 
 The mixture-of-experts sibling, the next conversion target, is
 measured on the same instrument. Qwen3-Coder-30B-A3B, the
@@ -962,6 +967,69 @@ compute, the chain reads 0.415 of exact attention multiply-adds at
 the measured 576-token block and 0.353 extrapolated to 4096
 tokens, at about 81 visited keys per wormhole head plus 64 centroid
 dot products per query.
+
+The conversion closes by composing the two replacements. The
+staged feed-forward layers of Qwen3-4B serve from int8 packs,
+one byte per weight with per-row scales, 2.4~GiB for all
+thirty-six layers, against 5.0~GiB for the same layers' fp16
+weights, and the four-layer wormhole chain carries attention at
+layers 25 through 28 with 0.14~MiB of carrier state and no
+growing key-value cache. The composed serving form resides in
+5.6~GiB, against the unconverted model's 7.5~GiB of fp16
+weights, before any key-value cache. The composed network is measured on the full
+battery: five continuation prompts decode to clean prose with
+repetition at or below 0.11; the instructed multiple-choice
+sample matches the teacher's suite scores, 0.625, 0.625, 0.75,
+and 0.75 on hellaswag, boolq, winogrande, and piqa, with zero
+unanswered rows; perplexity is 17.24 against the teacher's 15.80
+on the forty-thousand-token slice; and the binding zero-shot
+read scores 0.5547 against the teacher's 0.5938 on the same
+256-question sample. The composed network is exported as a
+standalone package that serves the exact measured construction.
+
+Wall-clock serving is measured on the same ladder the teacher's
+key-value cache uses. The straightforward full-prefix form pays
+quadratic cost, 0.42 tokens per second at 1k context falling to
+0.02 at 16k. A mixed-cache form, teacher layers decoding from
+their cache while the chain recomputes over the prefix, serves
+2.59 / 0.66 / 0.14 / 0.02 tokens per second at 1k / 4k / 8k /
+16k, sixteen greedy tokens bit-identical to the full-prefix form,
+against the teacher's 35.1 / 34.0 / 27.0 / 9.5. The carrier's
+state is naturally incremental, and its state-machine form is the
+decaying cache: a ring of the last 256 rows, the sink, frozen
+cluster centers from the first 256 rows, and running per-cluster
+sums, about 13~MiB of state at any context. Below 256 tokens it
+is exact dense attention; above, sink plus a 64-row band plus a
+monopole far field over the running sums. On the quality battery
+the incremental form holds parity on the instructed
+multiple-choice sample, scores 16.69 perplexity on a
+four-thousand-token slice and 0.5352 on the binding read, and its
+wall-clock ladder is flat: 15.13 / 14.83 / 14.87 / 9.70 tokens
+per second at 1k / 4k / 8k / 16k. Its continuation repetition
+degrades to 0.50--0.65 against the composed form's 0.11, the
+measured cost of freezing the centers and summarizing the far
+field, recorded as a limit and left to the next levers. The
+three forms measured against the unconverted model, summarized
+with the wall-clock ladder at 4k context:
+
+\begin{center}
+\begin{tabular}{lcccc}
+\toprule
+Form & Size & ppl & mmlu & 4k tok/s \\
+\midrule
+Unconverted teacher (fp16) & 7.5~GiB $+$ KV & 15.80 & 0.5938 & 34.0 \\
+Composed (packs $+$ chain) & 2.4~GiB packs, 5.6~GiB resident & 17.24 & 0.5547 & 0.66 \\
+Incremental carrier & 5.6~GiB resident $+$ 13~MiB & 16.69 & 0.5352 & 14.83 \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The composed row's perplexity is the forty-thousand-token slice
+of the text; the incremental carrier's 16.69 is the
+four-thousand-token slice at a different corpus offset. Its 4k
+tokens-per-second reading is the mixed-cache form; the
+full-prefix form reads 0.14 there. The teacher's KV cache grows
+with context; the carrier's state does not.
 
 \subsection{What the transparency buys}
 
@@ -1607,18 +1675,18 @@ The limits are stated as precisely as the capabilities.
 
 8. The conversion numbers are one teacher, one corpus, one
    evaluation convention, and all thirty-six feed-forward layers
-   staged with native attention everywhere. \oldsystem{At 0.89 of the key
-   count with the serve-refit applied the converted network is
-   usable but not competitive: the binding zero-shot read sits
-   3.9 points below the teacher, concentrated in the mathematics
-   subjects, and closing that deficit beyond the measured key
-   ladder is open.} \oldsystem{At full keys with native-dtype stage compute
-   the network matches the teacher exactly on the binding read,
-   at native-scale compute.} The perplexity non-regression guard
-   holds at the registered coarse bar, and the decode battery is
-   a sampled stability check, not a proof that every prompt
-   decodes well. Zero-shot accuracy is read on the converted
-   network as its binding gate.
+   staged. The composed serving form, int8-pack stages with
+   wormhole attention, is usable but not competitive on the
+   binding read: 0.5547 against the teacher's 0.5938, a
+   3.9-point deficit concentrated in the mathematics subjects,
+   and closing that deficit beyond the measured key ladder is
+   open. At full keys with native-dtype stage compute and native
+   attention the network matches the teacher exactly on the
+   binding read, at native-scale compute. The perplexity
+   non-regression guard holds at the registered coarse bar, and
+   the decode battery is a sampled stability check, not a proof
+   that every prompt decodes well. Zero-shot accuracy is read on
+   the converted network as its binding gate.
 
 9. The spatial application of the ellipsoid representation, as an
    alternative to local convolutions, is an open direction rather
@@ -1637,14 +1705,23 @@ The limits are stated as precisely as the capabilities.
     teacher on invented trivia. The 4096-token compute ratio is
     extrapolated from the measured 576-token block, and the
     compute is counted in multiply-adds, not wall-clock time; the
-    retrieval is gather-shaped, and its wall-clock crossover
-    against dense attention is not yet measured. The decode
+    retrieval is gather-shaped, and its wall-clock ladder is
+    now measured: the mixed-cache form serves 2.59 / 0.66 /
+    0.14 / 0.02 tokens per second at 1k / 4k / 8k / 16k context
+    and the incremental carrier 15.13 / 14.83 / 14.87 / 9.70,
+    against the teacher's 35.1 / 34.0 / 27.0 / 9.5. The decode
     battery is a sampled stability check alongside teacher-forced
     perplexity, not a proof that every prompt decodes well, and it
     has run on the four-layer chain and the fifteen-layer body
     chain. The fifteen-layer body chain passes the battery and
     scores 0.5898 against the teacher's 0.5938 on the binding
     read, a one-question difference with no subject collapse.
+    The incremental carrier, the constant-memory serving form of
+    Section 6.4, keeps the multiple-choice parity and the flat
+    speed ladder, but its continuation repetition rises to
+    0.50--0.65 against the composed form's 0.11, the measured
+    cost of freezing the cluster centers and summarizing the far
+    field into a monopole.
 
 12. The closed-form field classifier is measured and bounded.
     The ellipsoid-mixture idea, fields over pixel coordinates
@@ -1717,10 +1794,12 @@ scratch at toy scale, and converts a pretrained model's
 feed-forward stages into frozen teacher-key stages read out by one
 ridge solve, reproducing the layer exactly on held-out rows, with
 mid-model attention replaced by retrieval wormholes that do not
-compound and \oldsystem{a fully converted network, all thirty-six
-feed-forward stages, that passes the closed-loop battery at 0.89
-of the key count and, at full keys, scores exactly the teacher's
-} zero-shot accuracy.
+compound and a composed converted network of Qwen3-4B, all
+thirty-six feed-forward stages served from 2.4~GiB of int8
+packs with four wormhole carriers, that passes the closed-loop
+battery and scores 0.5547 against the teacher's 0.5938
+zero-shot, with an incremental carrier serving it at constant
+memory and a flat speed ladder.
 Attribution and replay hold everywhere by construction.
 The negative results are part of the design: growth by re-solving
 drifts, un-gated summation extrapolates, and any basis that omits
@@ -1775,7 +1854,10 @@ The open measurements are:
   the code-space map read through the lens-inversion diagnostic and
   the block-correspondence census locating the uncovered blocks;
 \item the ellipsoid-mixture port of the language track;
-\item the serve-time residency gate of the consumer-grade target;
+\item the serve-time residency gate of the consumer-grade target
+  (partially measured: the composed form resides in 5.6~GiB and
+  serves 16k context; the consumer-grade envelope is the open
+  part);
 \item the from-scratch track at real scale, on a fixed 300--500 euro
   compute budget, GPT-2-class subword training in which the student
   queries a teacher only at its own measured disagreement tail,

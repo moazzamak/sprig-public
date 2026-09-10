@@ -1,12 +1,12 @@
 # Priority notice
 
-Dated: 2026-09-08
+Dated: 2026-09-10
 
 This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`59bdb07278a6e8f32f101632be97728383b8cb4a3ea3c0e3908cd0bbfcfdac43`),
+`86a4b2672233c11f90b755c3afd959bd3a4af07e1b7bddd668e0de8ea20ad300`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -46,7 +46,14 @@ r12 (this commit: the transfer-back prediction framed as a
 registered composition claim over its cited ingredients; the
 serve-refit and training-target dose curves stated (2,300 vs
 36,500 stream tokens; the target-weight sweep); claims
-unchanged).
+unchanged). r13 (this commit: the composed conversion
+measured - int8-pack stages with the four-layer wormhole chain hold
+the battery at 0.5547 against the teacher 0.5938 with perplexity 17.24
+against 15.80; the mixed-cache and incremental-carrier serving ladders
+measured, flat at 15 tokens per second from 1k to 8k context;
+pc_wormhole_pack_battery, pc_speed_mixedcache, and pc_incremental_carrier
+evidence sealed; the manifest re-binds lm_d4_gates to its appended
+d4_mc_kmap arm, prior content unchanged).
 
 ## Claims
 
@@ -65,7 +72,11 @@ unchanged).
    clusters exact; diffuse mass summarized as a monopole),
    admitted only through exactness, census, perplexity, and
    decode gates, and measured as a chain whose error does not
-   compound.
+   compound. Composed with the int8-pack stages, the full converted
+   network holds the binding battery at 0.5547 against the
+   teacher's 0.5938 with perplexity 17.24 against 15.80,
+   and its incremental-carrier form serves at constant
+   memory with a flat speed ladder.
 4. The epistemic layer is separable from the conversion: the
    per-patch instruments (fit error, coverage, novelty) attach
    to any conventionally trained network without converting it.
