@@ -26,12 +26,6 @@
 \newcommand{\oldsystem}[1]{%
   {\sethlcolor{orange!25}\textcolor{orange}{\textbf{[PRE-WORMHOLE SYSTEM]}}~\hl{#1}}%
   \sethlcolor{yellow}}
-% Four-chain serving passages, highlighted so they are re-measured
-% on the full-carrier form (all 36 attention layers carrierized,
-% the registered delivery target) before final publication.
-\newcommand{\oldform}[1]{%
-  {\sethlcolor{blue!12}\textcolor{blue}{\textbf{[SUPERSEDED SERVING FORM]}}~\hl{#1}}%
-  \sethlcolor{yellow}}
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta, fit}
 \usepackage[hidelinks]{hyperref}
@@ -62,8 +56,8 @@ A trained deep network is one opaque object. No standard method
 says which training example produced which part of an output, so a
 contribution cannot be priced; two trained networks cannot be added
 into a better one; and new data means retraining the whole. This
-report describes additive networks, the family this report names
-SprigFields, a working name, in which every stage is a frozen
+report describes additive networks, named here Sprig fields, in
+which every stage is a frozen
 basis read out by one ridge regression, a regularized linear
 least-squares solve, the same calculation as fitting a line through
 points, in high dimension. Nothing is trained at use time, replay
@@ -89,25 +83,24 @@ this is the one basis that can fit them: the layer's function
 varies along its 9,728 key directions, and bases that miss those
 directions top out near a third of the explained variance. Key
 attribution compresses the stages, and the staged feed-forward
-layers of Qwen3-4B serve from int8 packs, 2.4~GiB for all
-thirty-six layers, at battery parity with the teacher. Attention becomes a retrieval carrier that keeps the
+layers of Qwen3-4B serve from int8 packs, 2.05~GiB for all
+thirty-six layers. Attention becomes a retrieval carrier that keeps the
 attention sink, a local band, and routed key clusters exact; four
 such carriers score 17.36 perplexity against the teacher's 17.28
-and pass the free-generation battery. The composed conversion,
-int8-pack stages with \oldform{four wormhole carriers}, scores 0.5547
-against the teacher's 0.5938 on the same 256-question sample,
-with the free-generation battery clear and perplexity 17.24
-against the teacher's 15.80 on the forty-thousand-token slice;
-\oldform{the serving state is 2.4~GiB of packs plus a 0.14~MiB carrier,
-a 5.6~GiB resident against the unconverted model's 7.5~GiB,
-writing 128~KiB of key-value cache per token against the teacher's
-144~KiB: the four carrier layers hold their attention state
-constant, while the other thirty-two layers keep their
-key-value cache, and an incremental carrier serves at a flat
-15 tokens per second from 1k to 8k context.} \oldsystem{At full
-keys with native-dtype stage compute the converted network
-scores exactly the teacher's zero-shot accuracy, 0.5938 against
-0.5938 on the same 256-question sample.}
+and pass the free-generation battery; the delivered full
+conversion
+replaces the attention of all thirty-six layers with wormhole
+carriers and the feed-forward network of all thirty-six with
+int8-pack stages, so no layer keeps a growing key-value cache:
+the network's state is 0.19~GiB at any context, 4.6~GiB of
+package and about 10~GiB resident including activations. It
+scores 0.5391 against the teacher's 0.5938 on the same
+256-question sample, with perplexity 18.56 against the teacher's
+15.80 on the forty-thousand-token slice, and continuation
+repetition of 0.04 to 0.85 against its registered bar of 0.21:
+the remaining measured price of holding every attention state
+constant, recorded as this form's limit. It serves at about 12
+to 16 tokens per second from 1k to 16k context.
 
 No prior work converts a pretrained network into nonlinear
 closed-form stages that keep exact attribution, deterministic
@@ -117,9 +110,10 @@ least-squares linear maps for compression and claims none of
 those properties; the transcoder line gives additive attribution
 but trains its replacement and does not serve it. Every borrowed
 part is cited, and where a neighbouring method does something
-better, its adoption is planned and named. The full feed-forward
-conversion, all thirty-six stages composed with the four-layer
-wormhole chain, is measured and holds the battery. The benefits also port back to unconverted,
+better, its adoption is planned and named. The feed-forward
+conversion is measured across all thirty-six stages, and the
+delivered conversion carries the attention of all thirty-six
+layers as well, with its quality limits stated. The benefits also port back to unconverted,
 conventionally trained networks: the same closed-form reads give
 a trained network's patches measured per-layer contracts without
 any conversion, an audit shadow that matches across devices
@@ -140,8 +134,12 @@ This work feeds GEODE, a network of frozen models and small
 deterministic programs whose contributions are priced by measured
 use, composed on demand, and replayed bit for bit
 \cite{whitepaper}. The network family measured here is named
-SprigFields, a working name; in formal prose, a residual field
-network. Its models are built from named, versioned blocks, and
+Sprig fields: the field is the additive whole, and a sprig is a
+cutting grafted into it from a trained network, so the name states
+the method. In formal prose, a residual field network. The
+conversion in this report is published as `Qwen3-4B-sprig`
+(converted models append the scheme to the base name). Models
+of the family are built from named, versioned blocks, and
 each block's value is computed by an exact, replayable
 construction rather than by an opaque training run. A trained deep
 network does not fit that discipline. It is one object: no standard
@@ -373,7 +371,10 @@ trained with Adam \cite{adam2015}, mean-squared-error loss, and
 weight decay, on the same data \cite{he2016}. The stronger bar is a
 converged DeepSDF-class network \cite{park2019}, a ReLU stack of
 three hidden layers of width 512 trained per shape to a convergence
-floor. A shape where a trained network stays above its floor is
+floor. The trained signed-distance line around that bar includes
+periodic-activation coordinate networks \cite{sitzmann2020} and
+meta-learned SDFs \cite{sitzmann2019meta}. A shape where a trained
+network stays above its floor is
 excluded from that network's comparison, never counted as a win for
 the closed form.
 
@@ -733,10 +734,10 @@ internal parts with fitted stages at serve time. The teacher is
 Qwen3-4B, an open-weights model of thirty-six layers, evaluated on
 two hundred thousand held-out subword tokens, where it scores 17.28
 perplexity. The design goal is a fully converted network, all
-thirty-six layers, and the measured form stages the feed-forward
-network of every layer, from the first to the thirty-sixth, with
-native attention everywhere; the retrieval wormholes of
-Section 6.4 are the separate attention-side conversion. The
+thirty-six layers: the feed-forward stages of every layer, from
+the first to the thirty-sixth, and the retrieval wormholes of
+Section 6.4 for the attention side. The delivered network composes
+both. The
 \textcolor{orange}{\textbf{[highlight convention: passages in
 orange were measured on the pre-wormhole serving system,
 feed-forward stages with native attention everywhere; they are
@@ -857,24 +858,29 @@ layers nearest the band to full keys moved the binding read by
 one question of 256, indistinguishable from noise, so the budget
 stays where the band says.}
 
-The binding gates are closed-loop and re-read on the composed
-system of Section 6.4. The composed network decodes five
-continuation prompts to coherent prose with no repetition
-failure; on the instructed multiple-choice battery it matches or
-beats the teacher on all four suites with zero unanswered rows.
-Zero-shot accuracy, the binding metric, is read on the same
-256-question sample as the teacher: the composed serving form
-scores 0.5547 against the teacher's 0.5938, and the deficit sits
-in the mathematics subjects while the knowledge subjects score
+The binding gates are closed-loop and re-read on the delivered
+system of Section 6.4. The delivered network decodes five
+continuation prompts to coherent prose with no collapse, though
+repetition crosses the registered bar; on the instructed
+multiple-choice battery, eight questions per suite, it reads
+0.875, 0.625, 0.625 and 0.625 against the teacher's 0.625,
+0.625, 0.75 and 0.75 with no unanswered rows. Zero-shot accuracy,
+the binding metric, is read on the same
+256-question sample as the teacher: the delivered serving form
+scores 0.5391 against the teacher's 0.5938, and the deficit sits
+in the mathematics subjects while some knowledge subjects score
 at or above the teacher. \oldsystem{The deficit is compression,
 not mechanism: at full keys with native-dtype stage compute and
 native attention the converted network scores 0.5938 against
 0.5938, exactly the teacher on every subject and every count.
 The dial between the endpoints is smooth, monotone in keys, and
 every point on it keeps the closed-loop properties.} The
-perplexity non-regression guard holds on the composed form:
-17.24 against the teacher's 15.80 in-run, below the registered
-structural bar.
+perplexity guard reads 18.56 against the teacher's 15.80 in-run,
+inside the registered coarse flag of $+5$. The width of the
+exact near-field window is the dial that places it: 31.37 at 64
+exact-recent rows to 18.56 at 512, measured on this instrument,
+and the four-layer
+intermediate held 17.24, inside the flag.
 
 The mixture-of-experts sibling, the next conversion target, is
 measured on the same instrument. Qwen3-Coder-30B-A3B, the
@@ -977,53 +983,68 @@ the measured 576-token block and 0.353 extrapolated to 4096
 tokens, at about 81 visited keys per wormhole head plus 64 centroid
 dot products per query.
 
-The conversion closes by composing the two replacements. The
-staged feed-forward layers of Qwen3-4B serve from int8 packs,
-one byte per weight with per-row scales, 2.4~GiB for all
-thirty-six layers, against 5.0~GiB for the same layers' fp16
-weights, \oldform{and the four-layer wormhole chain carries attention at
-layers 25 through 28 with 0.14~MiB of carrier state and no
-growing key-value cache.} The composed serving form resides in
-5.6~GiB, against the unconverted model's 7.5~GiB of fp16
-weights, before any key-value cache. The composed network is measured on the full
-battery: five continuation prompts decode to clean prose with
-repetition at or below 0.11; the instructed multiple-choice
-sample matches the teacher's suite scores, 0.625, 0.625, 0.75,
-and 0.75 on hellaswag, boolq, winogrande, and piqa, with zero
-unanswered rows; perplexity is 17.24 against the teacher's 15.80
-on the forty-thousand-token slice; and the binding zero-shot
-read scores 0.5547 against the teacher's 0.5938 on the same
-256-question sample. The composed network is exported as a
-standalone package that serves the exact measured construction.
+The conversion closes by composing the two replacements across
+the whole network, the delivery target. The staged feed-forward
+layers of Qwen3-4B serve from int8 packs, one byte per weight
+with per-row scales, 2.05~GiB for all thirty-six layers against
+5.0~GiB for the same layers' fp16 weights, and the wormhole
+carrier replaces the attention of every one of the thirty-six
+layers, so no layer keeps a growing key-value cache. The
+delivered network is measured on the full battery. Perplexity is
+18.56 against the teacher's 15.80 on the forty-thousand-token
+slice, a rise of 2.76, inside the track's registered coarse flag
+of $+5$. The binding zero-shot read scores 0.5391 against
+the teacher's 0.5938 on the same 256-question sample, a
+5.5-point deficit, and the instructed multiple-choice suites,
+eight questions each, read 0.875, 0.625, 0.625 and 0.625 on
+hellaswag, boolq, winogrande and piqa against the teacher's
+0.625, 0.625, 0.75 and 0.75, with no unanswered rows. The
+continuation battery decodes five prompts to coherent prose with
+no collapse, but repetition reads 0.04 to 0.85 against the
+registered bar of 0.21, so that gate fails as well. The width of
+the exact near-field window is the measured quality dial of this
+form: the same battery reads 31.37, 25.29, 23.17, 21.12 and
+18.56 perplexity at 64, 128, 192, 256 and 512 exact-recent rows,
+at a state cost of 2~MiB per layer for the last step, while a
+variant whose cluster centers track the served key distribution
+moves the guard by 0.006. For scale on the same instrument, an
+intermediate form that carrierized four attention layers and
+left thirty-two on native attention held 17.24 perplexity and
+0.5547 on the binding read: the residual gap of 1.3 perplexity
+is the measured price of holding every attention state
+constant, and the continuation gate is this track's central
+negative result. The converted network is exported
+as a standalone package, 4.6~GiB self-contained, that serves the
+exact measured construction.
 
 Wall-clock serving is measured on the same ladder the teacher's
 key-value cache uses. The straightforward full-prefix form pays
 quadratic cost, 0.42 tokens per second at 1k context falling to
-0.02 at 16k. \oldform{A mixed-cache form, teacher layers decoding from
-their cache while the chain recomputes over the prefix, serves
-2.59 / 0.66 / 0.14 / 0.02 tokens per second at 1k / 4k / 8k /
-16k, sixteen greedy tokens bit-identical to the full-prefix form,
-against the teacher's 35.1 / 34.0 / 27.0 / 9.5.} The carrier's
+0.02 at 16k. On the delivered form the ladder runs 12.3 / 16.1 / 15.6 / 11.9
+tokens per second at 1 / 4 / 8 / 16
+thousand tokens of context, single stream, against the teacher's
+35.1 / 34.0 / 27.0 at the first three points. The conversion
+gives up some short-context speed, and by construction it does
+not pay the
+quadratic form or the cache growth that make the teacher's curve
+fall. Throughput scales by serving independent sequences in
+lockstep: one step carries eight sequences at 7.9 milliseconds
+per token and sixteen at 5.9, 126 and 170 tokens per second
+aggregate, with outputs identical to the single-stream path. The
+carrier's
 state is naturally incremental, and its state-machine form is the
-decaying cache: a ring of the last 256 rows, the sink, frozen
+decaying cache: a ring of the last 512 rows, the sink, frozen
 cluster centers from the first 256 rows, and running per-cluster
-sums over every token seen, about 13~MiB of state at any
-context. Nothing is dropped as the context grows: tokens older
-than the ring still contribute through their cluster sums, so
+sums over every token seen, about 5.5~MiB per layer, 0.19~GiB in
+total at any context. Nothing is dropped as the context grows:
+tokens older than the ring still contribute through their
+cluster sums, so
 the carrier summarizes the whole conversation rather than
 keeping a window over it. Below 256 tokens it
-is exact dense attention; above, sink plus a 64-row band plus a
-monopole far field over the running sums. \oldform{On the quality battery
-the incremental form holds parity on the instructed
-multiple-choice sample, scores 16.69 perplexity on a
-four-thousand-token slice and 0.5352 on the binding read, and its
-wall-clock ladder is flat: 15.13 / 14.83 / 14.87 / 9.70 tokens
-per second at 1k / 4k / 8k / 16k. Its continuation repetition
-degrades to 0.50--0.65 against the composed form's 0.11, the
-measured cost of freezing the centers and summarizing the far
-field, recorded as a limit and left to the next levers.} The
-three forms measured against the unconverted model, summarized
-with the wall-clock ladder at 4k context:
+is exact dense attention; above, sink plus a 512-row band plus a
+monopole far field over the running sums. The
+forms measured against the unconverted model, summarized at 4k
+context:
 
 \begin{center}
 \begin{tabular}{lcccc}
@@ -1031,42 +1052,36 @@ with the wall-clock ladder at 4k context:
 Form & Size & ppl & mmlu & 4k tok/s \\
 \midrule
 Unconverted teacher (fp16) & 7.5~GiB $+$ KV & 15.80 & 0.5938 & 34.0 \\
-\oldform{Composed (packs $+$ chain)} & \oldform{2.4~GiB packs, 5.6~GiB resident} & \oldform{17.24} & \oldform{0.5547} & \oldform{0.66} \\
-\oldform{Incremental carrier} & \oldform{13~MiB carrier state, 8.6~GiB at 1k} & \oldform{16.69} & \oldform{0.5352} & \oldform{14.83} \\
+Sprig, full conversion & 4.6~GiB package, 10.2~GiB resident & 18.56 & 0.5391 & 15.6 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-The composed row's perplexity is the forty-thousand-token slice
-of the text; the incremental carrier's 16.69 is the
-four-thousand-token slice at a different corpus offset. Its 4k
-tokens-per-second reading is the mixed-cache form; the
-full-prefix form reads 0.14 there. The cache metric follows the published convention: a cache
+The delivered row's perplexity is the forty-thousand-token slice
+of the text. The two intermediate forms measured on the same
+instrument, kept as rationale rather than as serving candidates:
+the four-layer composed chain at 17.24 perplexity and 0.5547 on
+the binding read, inside the coarse flag, and the incremental
+carrier at 16.69 and 0.5352 with the same flat ladder but
+repetition 0.50--0.65. Full carrierization of the remaining
+thirty-two layers costs 14.1 perplexity and 1.6 points of
+binding read against the four-layer intermediate, the measured
+price of a fixed attention state everywhere. The cache metric follows the published convention: a cache
 structure's bytes divided by the number of tokens it can hold,
 stated per token. The teacher writes 144~KiB per token: all
 thirty-six layers store key and value for eight heads of 128
 dimensions in fp16, 4~KiB per layer, 2.25~GiB at 16k context.
-\oldform{The composed form writes less. The four chain layers, which
-would otherwise add 16~KiB per token, hold no key-value cache
-at all: their attention is carried by a fixed 0.14~MiB of
-cluster centers and sink, frozen from the first 256 rows and
-independent of how long the context grows, so their per-token
-cost is that budget divided by the context -- 36 bytes per
-token at 4k and 9 at 16k, cheaper than the linear 16~KiB per
-token after the first nine tokens and falling to zero as the
-context grows. The remaining thirty-two layers write their
-128~KiB per token, 2.0~GiB at 16k context; the mixed-cache
-serving mode additionally keeps the chain's input stream at
-5~KiB per token. The incremental carrier fixes the chain state
-at about 13~MiB for any context, its ring holding the last 256
-rows exactly, so its per-token cost is 3.3~KiB at 4k and
-0.8~KiB at 16k while the thirty-two teacher layers still write
-128~KiB per token; its measured resident ladder, 8.57 to
-12.44~GiB across 1k to 16k context, is that growing cache on
-top of the constant state.} The trade is exactness, not bytes or
-coverage: the carrier stores the prefix's statistics rather
-than its tokens, dropping nothing, and the repetition limit
-above records what that summarization costs.
+The delivered form writes no key-value cache at all: every
+layer's attention runs on the fixed carrier state, a sink row, a
+ring of the last 512 rows, a 512-row exact band, sixty-four
+frozen centers and the running per-cluster sums, 0.19~GiB in
+total at any context. Nothing is dropped as the context grows,
+and the resident memory is flat, about 10~GiB including
+activations, against the teacher's 7.5~GiB of weights plus a
+cache that reaches 2.25~GiB at 16k. The trade is exactness, not
+bytes or coverage: the carrier stores the prefix's statistics
+rather than its tokens, and the repetition limit above records
+what that summarization costs.
 
 \subsection{What the transparency buys}
 
@@ -1578,7 +1593,7 @@ cluster center, the per-cluster running value sums are exactly
 the linear-attention state, so the wormhole is linear attention
 with a data-derived frozen kernel, confined to the far field
 only. Two things are not linear attention: the retained set --
-the sink, the 64-row band, and the census-selected dense heads --
+the sink, the 512-row band, and the census-selected dense heads --
 is exact softmax, and the two parts share one softmax
 normalization, the far-field mass entering the same denominator
 as the exact keys. Linear attention approximates the whole map
@@ -1621,11 +1636,18 @@ incremental carrier is a fixed closed-form budget installed as
 the attention replacement itself: frozen farthest-point cluster
 centers from the first 256 rows, hard assignment, and running
 per-cluster value sums that cover every token seen --
-summarized, not windowed -- with the last 256 rows, the sink,
+summarized, not windowed -- with the last 512 rows, the sink,
 and the census-selected dense heads exact, and a bit-exact
-dense guard below 256 tokens. Nothing is dropped; the measured
-cost of the summarized far field is the repetition limit, not a
-missing prefix.
+dense guard below the first 256 tokens. Nothing is dropped; the
+measured cost of the summarized far field is the repetition
+limit, not a missing prefix. The width of the exact window is
+this form's measured quality dial. Widening it from 64 to 128,
+192, 256 and 512 rows reads 31.37, 25.29, 23.17, 21.12 and
+18.56 perplexity on the delivered battery at fixed accounting.
+A variant whose cluster centers track the served key
+distribution, instead of staying frozen, moves the same guard
+by 0.006. The exactness frontier is where the budget is spent,
+and the summarized far field is where being wrong is cheap.
 
 The sparse-attention line. Exact attention over a retrieved or
 routed subset is Reformer's locality-sensitive hashing
@@ -1642,6 +1664,9 @@ selection \cite{squeezed2025}, with the indexing machinery
 itself the inverted-file and product-quantization line of
 J\'egou et al.~\cite{jegou2011} and HNSW \cite{malkov2018}.
 The low-rank forms are Linformer \cite{linformer2020}. The
+local-window line keeps a span exact while abstracting the
+rest: sliding windows \cite{beltagy2020} and window-plus-global
+sparsity \cite{zaheer2020}. The
 attention sink, the massive mass on the first token that the
 measured layer shows at 59 percent of softmax mass, is
 StreamingLLM \cite{xiao2023}; head heterogeneity, behind the
@@ -1755,13 +1780,24 @@ The limits are stated as precisely as the capabilities.
    word-tokenized WikiText-2.
 
 8. The conversion numbers are one teacher, one corpus, one
-   evaluation convention, and all thirty-six feed-forward layers
-   staged. The composed serving form, int8-pack stages with
-   wormhole attention, is usable but not competitive on the
-   binding read: \oldform{0.5547 against the teacher's 0.5938, a
-   3.9-point deficit concentrated in the mathematics subjects,
-   and closing that deficit beyond the measured key ladder is
-   open}. At full keys with native-dtype stage compute and native
+   evaluation convention, and the delivered network stages all
+   thirty-six feed-forward layers and carrierizes all thirty-six
+   attention layers. The delivered form is usable but not
+   competitive on the binding read: 0.5391 against the teacher's
+   0.5938, a 5.5-point deficit, with perplexity 18.56 against
+   15.80, inside the track's registered coarse flag of $+5$, and
+   continuation repetition above its registered bar. The measured
+   price of holding every attention state constant is the central
+   negative result of this track; the levers registered for it
+   were a wider exact band, center tracking, more clusters and a
+   re-anchored sink. The width lever is now measured and adopted
+   (64 to 512 exact-recent rows: 31.37 to 18.56 perplexity at a
+   fixed state size per row), center tracking measured inert
+   (0.006), and the residual sits in the summarized far field,
+   where the intermediate four-layer chain (17.24
+   and 0.5547, inside the flag) bounds what more exactness can
+   buy. At full keys
+   with native-dtype stage compute and native
    attention the network matches the teacher exactly on the
    binding read, at native-scale compute. The stated deployment
    mitigation is tool routing, not in-head arithmetic: at launch
@@ -1794,23 +1830,26 @@ The limits are stated as precisely as the capabilities.
     teacher on invented trivia. The 4096-token compute ratio is
     extrapolated from the measured 576-token block, and the
     compute is counted in multiply-adds, not wall-clock time; the
-    retrieval is gather-shaped, and its wall-clock ladder is
-    now measured: \oldform{the mixed-cache form serves 2.59 / 0.66 /
-    0.14 / 0.02 tokens per second at 1k / 4k / 8k / 16k context
-    and the incremental carrier 15.13 / 14.83 / 14.87 / 9.70,
-    against the teacher's 35.1 / 34.0 / 27.0 / 9.5}. The decode
+    retrieval is gather-shaped. The delivered full-carrier form's
+    wall-clock ladder runs 12.3 / 16.1 / 15.6 / 11.9 tokens per
+    second at 1k / 4k / 8k / 16k context single stream against the
+    teacher's 35.1 / 34.0 / 27.0 at the first three points, with
+    batching as the throughput lever: 126.4 tokens per second at
+    eight sequences and 169.6 at sixteen, outputs identical to
+    the single-stream path. The decode
     battery is a sampled stability check alongside teacher-forced
     perplexity, not a proof that every prompt decodes well, and it
-    has run on the four-layer chain and the fifteen-layer body
-    chain. The fifteen-layer body chain passes the battery and
+    has run on the four-layer chain, the fifteen-layer body
+    chain, and the delivered full-carrier form. The fifteen-layer body chain passes the battery and
     scores 0.5898 against the teacher's 0.5938 on the binding
     read, a one-question difference with no subject collapse.
-    \oldform{The incremental carrier, the constant-memory serving form of
-    Section 6.4, keeps the multiple-choice parity and the flat
-    speed ladder, but its continuation repetition rises to
-    0.50--0.65 against the composed form's 0.11, the measured
-    cost of freezing the cluster centers and summarizing the far
-    field into a monopole.}
+    The full-carrier form fails the continuation repetition bar:
+    its five prompts read 0.04 to 0.85 against the bar of 0.21,
+    the far-field cost compounding across all thirty-six layers.
+    The width lever is now measured and adopted (64 to 512
+    exact-recent rows: 31.37 to 18.56 perplexity); center
+    tracking measured inert; the residual sits in the summarized
+    far field.
 
 12. The closed-form field classifier is measured and bounded.
     The ellipsoid-mixture idea, fields over pixel coordinates
@@ -1883,12 +1922,13 @@ scratch at toy scale, and converts a pretrained model's
 feed-forward stages into frozen teacher-key stages read out by one
 ridge solve, reproducing the layer exactly on held-out rows, with
 mid-model attention replaced by retrieval wormholes that do not
-compound and a composed converted network of Qwen3-4B, all
-thirty-six feed-forward stages served from 2.4~GiB of int8
-packs with \oldform{four wormhole carriers}, that passes the closed-loop
-battery and scores 0.5547 against the teacher's 0.5938
-zero-shot, \oldform{with an incremental carrier serving it at constant
-memory and a flat speed ladder}.
+compound and a converted network of Qwen3-4B, all
+thirty-six feed-forward stages served from 2.05~GiB of int8
+packs and the attention of all thirty-six layers carried with no
+key-value cache anywhere, a fixed 0.19~GiB state at any context,
+serving about 12 to 16 tokens per second from 1k to 16k context
+and scoring 0.5391 against the teacher's 0.5938 zero-shot, with
+its continuation and far-field limits measured and stated.
 Attribution and replay hold everywhere by construction.
 The negative results are part of the design: growth by re-solving
 drifts, un-gated summation extrapolates, and any basis that omits
@@ -2001,25 +2041,28 @@ transformers.
 J.~Tang, Y.~Zhao, K.~Zhu, G.~Xiao, B.~Kasikci, and S.~Han.
 Quest: query-aware sparsity for efficient long-context LLM
 inference.
-\emph{MLSys}, 2025. arXiv:2406.10774.
+\emph{ICML}, 2024. arXiv:2406.10774.
 
 \bibitem{retrievalattention2024}
-D.~Liu, M.~Chen, B.~Lu, H.~Jiang, Z.~Chen, S.~Li, and
-P.~Chen.
+D.~Liu, M.~Chen, B.~Lu, H.~Jiang, Z.~Han, Q.~Zhang, Q.~Chen,
+C.~Zhang, B.~Ding, K.~Zhang, C.~Chen, F.~Yang, Y.~Yang, and
+L.~Qiu.
 RetrievalAttention: accelerating long-context LLM inference via
 vector retrieval.
-\emph{ICML}, 2024. arXiv:2409.10516.
+\emph{NeurIPS}, 2024. arXiv:2409.10516.
 
 \bibitem{magicpig2024}
-Z.~Chen, R.~Sadagopan, H.~Huang, D.~Liu, M.~Chen, and S.~Li.
+Z.~Chen, R.~Sadhukhan, Z.~Ye, Y.~Zhou, J.~Zhang, N.~Nolte,
+Y.~Tian, M.~Douze, L.~Bottou, Z.~Jia, and B.~Chen.
 MagicPIG: LSH sampling for efficient LLM generation.
 arXiv:2410.16179, 2024.
 
 \bibitem{squeezed2025}
-J.~Noh, H.~Lee, K.~Lee, S.~Woo, and S.~Kim.
+C.~Hooper, S.~Kim, H.~Mohammadzadeh, M.~Maheswaran, S.~Zhao,
+J.~Paik, M.~W.~Mahoney, K.~Keutzer, and A.~Gholami.
 Squeezed attention: accelerating long context length LLM
 inference.
-\emph{ACL}, 2025.
+\emph{ACL}, 2025. arXiv:2411.09688.
 
 \bibitem{jegou2011}
 H.~J\'egou, M.~Douze, and C.~Schmid.
@@ -2050,9 +2093,13 @@ What does BERT look at? An analysis of BERT's attention.
 \bibitem{sukhbaatar2019}
 S.~Sukhbaatar, E.~Grave, P.~Bojanowski, and A.~Joulin.
 Adaptive attention span in transformers.
-\emph{ACL}, 2019. arXiv:1908.10864.
+\emph{ACL}, 2019. arXiv:1905.07799.
 
 \bibitem{whitepaper}
+M.~A.~Khan.
+GEODE: a growing network of frozen models. Composable
+contribution, verifiable answers, and payment by measured use.
+\emph{Whitepaper}, 2026.
 
 \bibitem{schmidhuber1992}
 J.~Schmidhuber.
@@ -2111,9 +2158,10 @@ Early stopping, but when?
 \emph{Neural Networks: Tricks of the Trade}, 1998.
 
 \bibitem{growing2025}
-A.~Gesmundo.
-Growing transformers.
-\emph{arXiv:2507.21151}, 2025.
+A.~Bochkov.
+Growing transformers: modular composition and layer-wise
+expansion on a frozen substrate.
+\emph{arXiv:2507.07129}, 2025.
 
 \bibitem{grave2017}
 E.~Grave, A.~Joulin, and N.~Usunier.
@@ -2197,14 +2245,15 @@ supported radial basis functions.
 \emph{Engineering with Computers}, 27(3), 2011. arXiv:1708.06695.
 
 \bibitem{lian2025}
-X.~Lian, Q.~Zhang, and L.~Chen.
-SE-RBFNet: ellipsoidal radial basis functions for signed distance
-field approximation.
+B.~Lian, Z.~Wang, D.~Wang, C.~Wu, and M.~Chen.
+Approximating signed distance fields with sparse ellipsoidal
+radial basis function networks: a dynamic multi-objective
+optimization strategy.
 \emph{arXiv:2505.02350}, 2025.
 
 \bibitem{zhang2025}
-J.~Zhang and P.~Wonka.
-efunc: an RBF-interpolated polynomial representation without neural
+B.~Zhang and P.~Wonka.
+efunc: an efficient function representation without neural
 networks.
 \emph{arXiv:2505.21319}, 2025.
 
@@ -2214,26 +2263,22 @@ Mat\'ern kernels for tunable implicit surface reconstruction.
 \emph{ICLR}, 2025. arXiv:2409.15466.
 
 \bibitem{cho2026}
-J.~Cho and J.~Park.
+W.~Cho and J.~Park.
 Escaping spectral bias without backpropagation: fast implicit neural
 representations with extreme learning machines.
 \emph{arXiv:2602.07603}, 2026.
 
 \bibitem{dai2026}
-S.~Dai, C.~Liu, and Y.~Zhang.
-Kernel-SDF: real-time signed distance field estimation via kernel
-regression.
+Z.~Dai, T.~Fan, M.~Amani, J.~Seo, K.~M.~B.~Lee, H.~Oh, and
+N.~Atanasov.
+Kernel-SDF: an open-source library for real-time signed distance
+function estimation using kernel regression.
 \emph{IEEE Robotics and Automation Letters}, 2026. arXiv:2603.29227.
 
 \bibitem{zozoulenko2025}
-O.~Zozoulenko and F.~Ekstr\"om.
-Representation boosting: closed-form additive representations for
-regression and classification.
-\emph{arXiv:2501.xxxx}, 2025.
-
-\bibitem{s2mdf2026}
-Scene-level implicit representations with signed distance fields.
-\emph{arXiv}, 2026.
+N.~Zozoulenko, T.~Cass, and L.~Gonon.
+Random feature representation boosting.
+\emph{ICML}, 2025. arXiv:2501.18283.
 
 \bibitem{shapley1953}
 L.~S.~Shapley.
@@ -2326,8 +2371,9 @@ language models.
 \emph{MLSys}, 2025. arXiv:2410.09982.
 
 \bibitem{ghostedlayers2026}
-Ghosted layers: unconstrained activation alignment for recovering
-layer-pruned LLMs.
+V.-D.~Yun, J.~Jo, S.~P.~Karimireddy, and S.~Lee.
+Ghosted layers: unconstrained activation alignment for
+recovering layer-pruned LLMs.
 \emph{arXiv:2605.15491}, 2026.
 
 \bibitem{replaceme2025}
@@ -2337,6 +2383,7 @@ transformer block linearization.
 \emph{arXiv:2505.02819}, 2025.
 
 \bibitem{shiftllm2026}
+A.~Bahri, H.~Li, H.~Li, and Z.~Chen.
 SHIFT-LLM: distribution shift correction in depth-pruned LLMs.
 \emph{arXiv:2608.25068}, 2026.
 
@@ -2358,6 +2405,8 @@ models.
 \emph{Transformer Circuits Thread}, 2025.
 
 \bibitem{cltvit2026}
+G.~Chatzoudis, K.~D.~Polyzos, Z.~Li, D.~Gu, G.~E.~Moran,
+H.~Wang, and D.~N.~Metaxas.
 Can cross-layer transcoders replace vision transformer
 activations? An interpretable perspective on vision.
 \emph{arXiv:2604.13304}, 2026.
@@ -2408,15 +2457,19 @@ LoLCATs: on low-rank linearizing of large language models.
 \emph{arXiv:2410.10254}, 2024.
 
 \bibitem{cubit2026}
+C.~Zheng, J.~Sun, Y.~Gao, Y.~Wang, L.~Tan, M.~Schwager,
+A.~Schneider, Y.~Nevmyvaka, and X.~Liu.
 Cubit: token mixer with kernel ridge regression.
 \emph{arXiv:2605.06501}, 2026.
 
 \bibitem{submodlin2025}
+R.~Dai, S.~Hu, X.~Shen, Y.~Zhang, X.~Tian, and J.~Ye.
 Leveraging submodule linearity enhances task arithmetic
 performance in LLMs.
-\emph{arXiv:2504.10902}, 2025.
+\emph{ICLR}, 2025. arXiv:2504.10902.
 
 \bibitem{kvgraft2026}
+S.~Schelpe.
 Smarter and cheaper at once: byte-exact KV-cache grafting turns a
 frozen small model into a verified-knowledge flywheel.
 \emph{arXiv:2607.14431}, 2026.
@@ -2453,8 +2506,7 @@ large language models.
 \emph{NeurIPS}, 2023. arXiv:2306.14048.
 
 \bibitem{rae2020}
-J.~W.~Rae, A.~Potapenko, S.~M.~Jayakumar, C.~Hillier, and
-T.~P.~Lillicrap.
+J.~W.~Rae, A.~Potapenko, S.~M.~Jayakumar, and T.~P.~Lillicrap.
 Compressive transformers for long-range sequence modelling.
 \emph{ICLR}, 2020. arXiv:1911.05507.
 
@@ -2483,6 +2535,18 @@ Dynamic memory compression: retrofitting LLMs for accelerated
 inference.
 \emph{ICML}, 2024. arXiv:2403.09636.
 
+\bibitem{beltagy2020}
+I.~Beltagy, M.~E.~Peters, and A.~Cohan.
+Longformer: the long-document transformer.
+\emph{arXiv:2004.05150}, 2020.
+
+\bibitem{zaheer2020}
+M.~Zaheer, G.~Guruganesh, A.~Dubey, J.~Ainslie, C.~Alberti,
+S.~Ontanon, P.~Pham, A.~Ravula, Q.~Wang, L.~Yang, and
+A.~Ahmed.
+Big Bird: transformers for longer sequences.
+\emph{NeurIPS}, 2020. arXiv:2007.14062.
+
 \bibitem{gu2023mamba}
 A.~Gu and T.~Dao.
 Mamba: linear-time sequence modeling with selective state spaces.
@@ -2501,13 +2565,16 @@ PagedAttention.
 \emph{SOSP}, 2023. arXiv:2309.06180.
 
 \bibitem{lmcache2024}
-Y.~Liu et al.
-LMCache: LLM semantic caching with key-value compression.
-\emph{arXiv}, 2024.
+Y.~Liu, Y.~Cheng, J.~Yao, Y.~An, X.~Chen, S.~Feng, Y.~Huang,
+S.~Shen, R.~Zhang, K.~Du, and J.~Jiang.
+LMCache: an efficient KV cache layer for enterprise-scale LLM
+inference.
+\emph{arXiv:2510.09665}, 2025.
 
 \bibitem{flexgen2023}
-Y.~Sheng, L.~Zheng, B.~Yuan, Z.~Li, M.~Ryabinin, B.~Chen,
-P.~Liang, C.~R\'e, I.~Stoica, and C.~Zhang.
+Y.~Sheng, L.~Zheng, B.~Yuan, Z.~Li, M.~Ryabinin, D.~Y.~Fu,
+Z.~Xie, B.~Chen, C.~Barrett, J.~E.~Gonzalez, P.~Liang,
+C.~R\'e, I.~Stoica, and C.~Zhang.
 FlexGen: high-throughput generative inference of large language
 models with a single GPU.
 \emph{ICML}, 2023. arXiv:2303.06865.
@@ -2607,8 +2674,7 @@ training dynamics.
 
 \bibitem{ilyas2022}
 A.~Ilyas, S.~M.~Park, L.~Engstrom, G.~Leclerc, and A.~Madry.
-Datamodels: understanding predictions with data and data with
-predictions.
+Datamodels: predicting predictions from training data.
 \emph{ICML}, 2022. arXiv:2202.00622.
 
 \bibitem{furlanello2018}

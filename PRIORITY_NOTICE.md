@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`848bf27aeb9da39a200d765c913d7bdb27567a8eb7c0b292ba83123cb9cedb07`),
+`9cec8034b436fddef0a0d893b8a5daefc87a03aca52dff159d8adcd9516a137e`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -87,7 +87,23 @@ parts-loaded and base-loaded serving paths are gated bit-exact
 against each other; the artifact digests are re-anchored (package
 digest 44a886b9 over 53 files, checksums.json 9e9392de); the
 model card gains a start-here section for users new to Hugging
-Face; claims unchanged).
+Face; claims unchanged). r19 (this commit: the delivered
+conversion restated on the adopted exact-window configuration -
+band 512 with the ring grown to match: perplexity 18.56 against
+the teacher's 15.80 on the forty-thousand-token slice, inside
+the registered +5 flag (the sealed band-64 form read 31.37),
+MMLU 0.5391 with boolq improved from 0.500 to 0.625; the exact
+recent-window width is measured as the quality dial (64 / 128 /
+192 / 256 / 512 rows read 31.37 / 25.29 / 23.17 / 21.12 /
+18.56) at a cost of 72 MiB of fixed state, single-stream speed
+unchanged at about 16 tokens per second, batched throughput
+93.4 (batch 8) and 70.2 (batch 16) tokens per second; a
+center-tracking variant measured inert (0.006); the continuation
+repetition gate remains the measured limit at 0.04-0.85 against
+the 0.21 bar; both papers' bibliographies were verified against
+live records and repaired where wrong; artifact re-anchored
+(package digest fa78d2bb over 54 files, checksums.json
+6a0cd361); the model card and paper restate the numbers above).
 
 ## Claims
 
@@ -106,11 +122,16 @@ Face; claims unchanged).
    clusters exact; diffuse mass summarized as a monopole),
    admitted only through exactness, census, perplexity, and
    decode gates, and measured as a chain whose error does not
-   compound. Composed with the int8-pack stages, the full converted
-   network holds the binding battery at 0.5547 against the
-   teacher's 0.5938 with perplexity 17.24 against 15.80,
-   and its incremental-carrier form serves at constant
-   memory with a flat speed ladder.
+   compound. Composed with the int8-pack stages over all
+   thirty-six layers, the delivered converted network holds the
+   binding battery at 0.5391 against the teacher's 0.5938 with
+   perplexity 18.56 against 15.80 on the forty-thousand-token
+   slice; the four-layer intermediate held 0.5547 and 17.24.
+   The width of the exact recent window is the measured quality
+   dial (31.37 at 64 rows to 18.56 at 512, at a fixed state size
+   per row). The form serves with a fixed 0.19 GiB state at any
+   context, and the continuation repetition gate remains its
+   measured limit.
 4. The epistemic layer is separable from the conversion: the
    per-patch instruments (fit error, coverage, novelty) attach
    to any conventionally trained network without converting it.
