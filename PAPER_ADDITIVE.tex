@@ -1562,6 +1562,24 @@ whose wall-clock crossover is not yet measured. Hedgehog's finding
 that spiky, monotone feature maps are what linear attention needs
 to match softmax is the lesson carried into the diffuse-head
 carrier candidate, fitted in closed form rather than trained.
+Linear attention as a fixed-state recurrence is Katharopoulos
+et~al.~\cite{katharopoulos2020}, with the fast-weight reading of
+Schlag et~al.~\cite{schlag2021} cited above and the
+random-feature instance of Peng et~al.~\cite{peng2021random}.
+The carrier's far field is itself a linear-attention recurrence:
+under a hard one-hot assignment of each key to its nearest frozen
+cluster center, the per-cluster running value sums are exactly
+the linear-attention state, so the wormhole is linear attention
+with a data-derived frozen kernel, confined to the far field
+only. Two things are not linear attention: the retained set --
+the sink, the 64-row band, and the census-selected dense heads --
+is exact softmax, and the two parts share one softmax
+normalization, the far-field mass entering the same denominator
+as the exact keys. Linear attention approximates the whole map
+with a trained or random kernel; the carrier computes the near
+field exactly and lets the recurrence cover only what the census
+says can be summarized, with the exactness gate admitting the
+replacement in the first place.
 Kernel ridge regression as a token mixer trained from scratch is
 Cubit \cite{cubit2026}.
 
@@ -2045,6 +2063,18 @@ Using fast weights to attend to the recent past.
 I.~Schlag, K.~Irie, and J.~Schmidhuber.
 Linear transformers are secretly fast weight programmers.
 \emph{ICML}, 2021.
+
+\bibitem{katharopoulos2020}
+A.~Katharopoulos, A.~Vyas, N.~Pappas, and F.~Fleuret.
+Transformers are RNNs: fast autoregressive transformers with
+linear attention.
+\emph{ICML}, 2020. arXiv:2006.16236.
+
+\bibitem{peng2021random}
+H.~Peng, N.~Pappas, D.~Yogatama, R.~Schwartz, N.~A.~Smith, and
+L.~Kong.
+Random feature attention.
+\emph{ICLR}, 2021. arXiv:2103.02143.
 
 \bibitem{irie2021}
 K.~Irie, I.~Schlag, R.~Csord\'as, and J.~Schmidhuber.

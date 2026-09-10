@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`318cf3ddd1a44362e1ba39272ab43d2f824cd09b38af4a2c1527a8cfa39317fc`),
+`956546ef17f6d7bb6bc6f5ea8088c19d3838c3312dfb65ee8f670d1092ddfd8c`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -67,7 +67,11 @@ carrier and the incremental cache - the compressed-memory family
 cited (Compressive Transformers, Infini-attention, Landmark
 Attention, LM-Infinite, Dynamic Memory Compression, Mamba, RWKV),
 the displacement stated as summarized-not-windowed with nothing
-dropped; claims unchanged).
+dropped; claims unchanged). r16 (this commit: the wormhole-vs-linear-attention relation
+stated - the far field is a linear-attention recurrence with a
+frozen hard-assignment kernel, while the retained set stays exact
+softmax under one shared normalization (Katharopoulos and random
+feature attention cited); claims unchanged).
 
 ## Claims
 
