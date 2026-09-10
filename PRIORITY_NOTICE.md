@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`9a9aad08373ab3e5a30ba7d305d0ef150cad35a35afdeeacfaa63890a8804303`),
+`318cf3ddd1a44362e1ba39272ab43d2f824cd09b38af4a2c1527a8cfa39317fc`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -62,7 +62,12 @@ the abstract constant-memory wording corrected to scope the carrier
 layers; the mixed-cache chain input stream disclosed at 5 KiB per
 token; known-limit 8 states the deployment mitigation of routing
 mathematics to external primitives, framed as a new formulation
-with nothing claimed; claims otherwise unchanged).
+with nothing claimed; claims otherwise unchanged). r15 (this commit: the prior-art pass for the wormhole
+carrier and the incremental cache - the compressed-memory family
+cited (Compressive Transformers, Infini-attention, Landmark
+Attention, LM-Infinite, Dynamic Memory Compression, Mamba, RWKV),
+the displacement stated as summarized-not-windowed with nothing
+dropped; claims unchanged).
 
 ## Claims
 

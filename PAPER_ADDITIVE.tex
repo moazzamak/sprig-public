@@ -1577,6 +1577,32 @@ with a fixed closed-form rule, the similarity between the query and
 the stored keys, over a two-hundred-key buffer on the converted
 network.
 
+The compressed-memory line. Bounding the attention memory
+without evicting is the compressive-memory family: Compressive
+Transformers keep a trained auxiliary store of compressed old
+activations \cite{rae2020}; Infini-attention adds a
+linear-attention recurrence over the whole prefix beside a
+local window, learned end to end \cite{munkhdalai2024};
+Landmark Attention keeps a fixed set of landmark keys with
+random-access retrieval \cite{mohtashami2023}; LM-Infinite
+extends length through distance-shaped attention without
+compressing memory \cite{han2023}; Dynamic Memory Compression
+learns per-token allocation of the key-value budget
+\cite{nawrot2024}; and the recurrent-architecture line holds a
+fixed state over the whole sequence from training, Mamba and
+RWKV \cite{gu2023mamba, peng2023rwkv}. The difference is the
+rule and the replacement. Those families either drop tokens,
+train the compression, or keep a learned companion module. The
+incremental carrier is a fixed closed-form budget installed as
+the attention replacement itself: frozen farthest-point cluster
+centers from the first 256 rows, hard assignment, and running
+per-cluster value sums that cover every token seen --
+summarized, not windowed -- with the last 256 rows, the sink,
+and the census-selected dense heads exact, and a bit-exact
+dense guard below 256 tokens. Nothing is dropped; the measured
+cost of the summarized far field is the repetition limit, not a
+missing prefix.
+
 The sparse-attention line. Exact attention over a retrieved or
 routed subset is Reformer's locality-sensitive hashing
 \cite{kitaev2020}, Routing Transformers' content-based
@@ -2389,6 +2415,47 @@ Y.~Tian, C.~R\'e, C.~Barrett, Z.~Wang, and B.~Chen.
 H$_2$O: heavy-hitter oracle for efficient generative inference of
 large language models.
 \emph{NeurIPS}, 2023. arXiv:2306.14048.
+
+\bibitem{rae2020}
+J.~W.~Rae, A.~Potapenko, S.~M.~Jayakumar, C.~Hillier, and
+T.~P.~Lillicrap.
+Compressive transformers for long-range sequence modelling.
+\emph{ICLR}, 2020. arXiv:1911.05507.
+
+\bibitem{munkhdalai2024}
+T.~Munkhdalai, M.~Faruqui, and S.~Gopal.
+Leave no context behind: efficient infinite context transformers
+with Infini-attention.
+\emph{arXiv:2404.07143}, 2024.
+
+\bibitem{mohtashami2023}
+A.~Mohtashami and M.~Jaggi.
+Landmark attention: random-access infinite context length for
+transformers.
+\emph{arXiv:2305.16300}, 2023.
+
+\bibitem{han2023}
+C.~Han, Q.~Wang, H.~Peng, W.~Xiong, Y.~Chen, H.~Ji, and S.~Wang.
+LM-Infinite: zero-shot extreme length generalization for large
+language models.
+\emph{NAACL}, 2024. arXiv:2308.16137.
+
+\bibitem{nawrot2024}
+P.~Nawrot, A.~La\'ncucki, M.~Chochowski, D.~Tarjan, and
+E.~M.~Ponti.
+Dynamic memory compression: retrofitting LLMs for accelerated
+inference.
+\emph{ICML}, 2024. arXiv:2403.09636.
+
+\bibitem{gu2023mamba}
+A.~Gu and T.~Dao.
+Mamba: linear-time sequence modeling with selective state spaces.
+\emph{arXiv:2312.00752}, 2023.
+
+\bibitem{peng2023rwkv}
+B.~Peng, E.~Alcaide, Q.~Anthony, A.~Albalak, S.~Arcadinho, et~al.
+RWKV: reinventing RNNs for the transformer era.
+\emph{EMNLP Findings}, 2023. arXiv:2305.13048.
 
 \bibitem{vllm2023}
 W.~Kwon, Z.~Li, S.~Zhuang, Y.~Sheng, L.~Zheng, C.~H.~Yu,
