@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`f7170921cb54131ea10eb4baf3e5e5a7c32344e1b09abbc2033105c9ad57c541`),
+`848bf27aeb9da39a200d765c913d7bdb27567a8eb7c0b292ba83123cb9cedb07`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -78,7 +78,16 @@ int8-derived additive readouts) is bound by hash through
 `SPRIG_ARTIFACT_ANCHOR.md` and through its shipped checksum file,
 now listed in the manifest; the current whitepaper marks the
 four-chain serving passages pending the full-carrier
-re-measurement, presentation only; claims unchanged).
+re-measurement, presentation only; claims unchanged). r18 (this commit: the converted network made self-contained -
+the retained base-model tensors (the token embedding with the
+tied head, the norms and the attention projections, 2.5 GiB) now
+ship inside the package, so the download is 4.6 GiB with nothing
+else fetched and no base-model dependency at runtime; the
+parts-loaded and base-loaded serving paths are gated bit-exact
+against each other; the artifact digests are re-anchored (package
+digest 44a886b9 over 53 files, checksums.json 9e9392de); the
+model card gains a start-here section for users new to Hugging
+Face; claims unchanged).
 
 ## Claims
 
