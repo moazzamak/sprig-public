@@ -94,7 +94,10 @@ with the free-generation battery clear and perplexity 17.24
 against the teacher's 15.80 on the forty-thousand-token slice;
 the serving state is 2.4~GiB of packs plus a 0.14~MiB carrier,
 a 5.6~GiB resident against the unconverted model's 7.5~GiB,
-and an incremental carrier serves it at constant memory, flat at
+writing 128~KiB of key-value cache per token against the teacher's
+144~KiB: the four carrier layers hold their attention state
+constant, while the other thirty-two layers keep their
+key-value cache, and an incremental carrier serves at a flat
 15 tokens per second from 1k to 8k context. \oldsystem{At full
 keys with native-dtype stage compute the converted network
 scores exactly the teacher's zero-shot accuracy, 0.5938 against
@@ -998,7 +1001,11 @@ against the teacher's 35.1 / 34.0 / 27.0 / 9.5. The carrier's
 state is naturally incremental, and its state-machine form is the
 decaying cache: a ring of the last 256 rows, the sink, frozen
 cluster centers from the first 256 rows, and running per-cluster
-sums, about 13~MiB of state at any context. Below 256 tokens it
+sums over every token seen, about 13~MiB of state at any
+context. Nothing is dropped as the context grows: tokens older
+than the ring still contribute through their cluster sums, so
+the carrier summarizes the whole conversation rather than
+keeping a window over it. Below 256 tokens it
 is exact dense attention; above, sink plus a 64-row band plus a
 monopole far field over the running sums. On the quality battery
 the incremental form holds parity on the instructed
@@ -1019,7 +1026,7 @@ Form & Size & ppl & mmlu & 4k tok/s \\
 \midrule
 Unconverted teacher (fp16) & 7.5~GiB $+$ KV & 15.80 & 0.5938 & 34.0 \\
 Composed (packs $+$ chain) & 2.4~GiB packs, 5.6~GiB resident & 17.24 & 0.5547 & 0.66 \\
-Incremental carrier & 5.6~GiB resident $+$ 13~MiB & 16.69 & 0.5352 & 14.83 \\
+Incremental carrier & 13~MiB carrier state, 8.6~GiB at 1k & 16.69 & 0.5352 & 14.83 \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1028,8 +1035,32 @@ The composed row's perplexity is the forty-thousand-token slice
 of the text; the incremental carrier's 16.69 is the
 four-thousand-token slice at a different corpus offset. Its 4k
 tokens-per-second reading is the mixed-cache form; the
-full-prefix form reads 0.14 there. The teacher's KV cache grows
-with context; the carrier's state does not.
+full-prefix form reads 0.14 there. The cache metric follows the published convention: a cache
+structure's bytes divided by the number of tokens it can hold,
+stated per token. The teacher writes 144~KiB per token: all
+thirty-six layers store key and value for eight heads of 128
+dimensions in fp16, 4~KiB per layer, 2.25~GiB at 16k context.
+The final version writes less. The four chain layers, which
+would otherwise add 16~KiB per token, hold no key-value cache
+at all: their attention is carried by a fixed 0.14~MiB of
+cluster centers and sink, frozen from the first 256 rows and
+independent of how long the context grows, so their per-token
+cost is that budget divided by the context -- 36 bytes per
+token at 4k and 9 at 16k, cheaper than the linear 16~KiB per
+token after the first nine tokens and falling to zero as the
+context grows. The remaining thirty-two layers write their
+128~KiB per token, 2.0~GiB at 16k context; the mixed-cache
+serving mode additionally keeps the chain's input stream at
+5~KiB per token. The incremental carrier fixes the chain state
+at about 13~MiB for any context, its ring holding the last 256
+rows exactly, so its per-token cost is 3.3~KiB at 4k and
+0.8~KiB at 16k while the thirty-two teacher layers still write
+128~KiB per token; its measured resident ladder, 8.57 to
+12.44~GiB across 1k to 16k context, is that growing cache on
+top of the constant state. The trade is exactness, not bytes or
+coverage: the carrier stores the prefix's statistics rather
+than its tokens, dropping nothing, and the repetition limit
+above records what that summarization costs.
 
 \subsection{What the transparency buys}
 
@@ -1682,7 +1713,15 @@ The limits are stated as precisely as the capabilities.
    and closing that deficit beyond the measured key ladder is
    open. At full keys with native-dtype stage compute and native
    attention the network matches the teacher exactly on the
-   binding read, at native-scale compute. The perplexity
+   binding read, at native-scale compute. The stated deployment
+   mitigation is tool routing, not in-head arithmetic: at launch
+   the network should recognize and delegate mathematical
+   computation to external primitives -- a computer or a
+   programming language -- so that its job is to choose and call
+   the right tool rather than to perform the arithmetic itself.
+   That routed system is a new formulation, not equivalent to
+   the converted network measured here, and this report claims
+   nothing about it yet. The perplexity
    non-regression guard holds at the registered coarse bar, and
    the decode battery is a sampled stability check, not a proof
    that every prompt decodes well. Zero-shot accuracy is read on

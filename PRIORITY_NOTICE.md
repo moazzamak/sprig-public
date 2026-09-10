@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`86a4b2672233c11f90b755c3afd959bd3a4af07e1b7bddd668e0de8ea20ad300`),
+`9a9aad08373ab3e5a30ba7d305d0ef150cad35a35afdeeacfaa63890a8804303`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -53,7 +53,16 @@ against 15.80; the mixed-cache and incremental-carrier serving ladders
 measured, flat at 15 tokens per second from 1k to 8k context;
 pc_wormhole_pack_battery, pc_speed_mixedcache, and pc_incremental_carrier
 evidence sealed; the manifest re-binds lm_d4_gates to its appended
-d4_mc_kmap arm, prior content unchanged).
+d4_mc_kmap arm, prior content unchanged). r14 (this commit: the cache metric restated in the published
+convention of cache bytes per token held - the final form writes
+128 KiB of key-value cache per token against the teacher 144, the
+four carrier layers instead holding a fixed 0.14 MiB, or 13 MiB
+incremental, that summarizes the whole prefix and drops nothing;
+the abstract constant-memory wording corrected to scope the carrier
+layers; the mixed-cache chain input stream disclosed at 5 KiB per
+token; known-limit 8 states the deployment mitigation of routing
+mathematics to external primitives, framed as a new formulation
+with nothing claimed; claims otherwise unchanged).
 
 ## Claims
 
