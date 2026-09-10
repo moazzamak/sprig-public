@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`956546ef17f6d7bb6bc6f5ea8088c19d3838c3312dfb65ee8f670d1092ddfd8c`),
+`f7170921cb54131ea10eb4baf3e5e5a7c32344e1b09abbc2033105c9ad57c541`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -71,7 +71,14 @@ dropped; claims unchanged). r16 (this commit: the wormhole-vs-linear-attention r
 stated - the far field is a linear-attention recurrence with a
 frozen hard-assignment kernel, while the retained set stays exact
 softmax under one shared normalization (Katharopoulos and random
-feature attention cited); claims unchanged).
+feature attention cited); claims unchanged). r17 (this commit: the delivered converted network is anchored -
+the full Sprig conversion of Qwen3-4B (all thirty-six attention
+layers on the wormhole carrier, all thirty-six feed-forwards as
+int8-derived additive readouts) is bound by hash through
+`SPRIG_ARTIFACT_ANCHOR.md` and through its shipped checksum file,
+now listed in the manifest; the current whitepaper marks the
+four-chain serving passages pending the full-carrier
+re-measurement, presentation only; claims unchanged).
 
 ## Claims
 

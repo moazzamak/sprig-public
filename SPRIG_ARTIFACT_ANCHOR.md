@@ -1,0 +1,50 @@
+# Sprig converted-network anchor (r17)
+
+Dated: 2026-09-10
+
+The delivered converted network for Qwen3-4B (the "Sprig"
+conversion) is anchored here by hash, so the bytes of the artifact
+are fixed as of this date.
+
+## What the artifact is
+
+The full conversion of Qwen3-4B: all 36 attention layers replaced
+by the wormhole carrier (fixed state per layer - a sink row, a
+256-row exact ring, a 64-row exact band, 64 farthest-point cluster
+centers and the running per-cluster value sums; no key-value cache
+anywhere in the forward pass) and all 36 feed-forward layers
+replaced by int8-derived additive readout packs. A standalone CLI
+loads the base model, applies the conversion on load, verifies
+every shipped file against `checksums.json` and generates greedily.
+
+Reference-machine serving (Radeon RX 9070 XT, ROCm): 16.0 tokens
+per second single stream, 126.4 at batch 8 and 169.6 at batch 16,
+about 10 GiB of reserved GPU memory including activations. The
+quality battery for this form is sealed in the private repository
+(`analysis/pc_fullcarrier_battery_2026-09-10.json`) and is not
+restated here.
+
+## The binding
+
+- `checksums.json` sha256 (`a81fe5a409edd6ae060749d490069b2aea0b83b33a5a19fff203f58b7aa27cce`):
+  this file lists the sha256 and byte size of each of the
+  45 other shipped files (2.05 GiB total, of which
+  2.05 GiB are the 36 packs).
+- package digest
+  (`7aa5168833540f76c0ad8991be72c24d07026e7943930f9f17cf9dc4494b73ce`):
+  sha256 over the concatenation, in name-sorted order, of the
+  `{sha256} *{file}` lines of those 45 entries.
+- `EVIDENCE_MANIFEST.sha256` lists the `checksums.json` hash, so
+  the manifest hash embedded in `PRIORITY_NOTICE.md` binds every
+  byte of the artifact transitively:
+  manifest -> checksums.json -> each shipped file.
+- Built from the main-repository commit `1f5d471` (2026-09-10).
+
+## Checking
+
+    cd exports/sprig-qwen3-4b-wormhole-v1
+    python serve_incremental.py --check
+
+reports `checksums: 45 checked, 0 bad` when the artifact
+is intact. The same sha256 values are what Hugging Face records
+for the published copy of these files.

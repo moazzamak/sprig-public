@@ -26,6 +26,12 @@
 \newcommand{\oldsystem}[1]{%
   {\sethlcolor{orange!25}\textcolor{orange}{\textbf{[PRE-WORMHOLE SYSTEM]}}~\hl{#1}}%
   \sethlcolor{yellow}}
+% Four-chain serving passages, highlighted so they are re-measured
+% on the full-carrier form (all 36 attention layers carrierized,
+% the registered delivery target) before final publication.
+\newcommand{\oldform}[1]{%
+  {\sethlcolor{blue!12}\textcolor{blue}{\textbf{[SUPERSEDED SERVING FORM]}}~\hl{#1}}%
+  \sethlcolor{yellow}}
 \usepackage{tikz}
 \usetikzlibrary{positioning, arrows.meta, fit}
 \usepackage[hidelinks]{hyperref}
@@ -88,17 +94,17 @@ thirty-six layers, at battery parity with the teacher. Attention becomes a retri
 attention sink, a local band, and routed key clusters exact; four
 such carriers score 17.36 perplexity against the teacher's 17.28
 and pass the free-generation battery. The composed conversion,
-int8-pack stages with four wormhole carriers, scores 0.5547
+int8-pack stages with \oldform{four wormhole carriers}, scores 0.5547
 against the teacher's 0.5938 on the same 256-question sample,
 with the free-generation battery clear and perplexity 17.24
 against the teacher's 15.80 on the forty-thousand-token slice;
-the serving state is 2.4~GiB of packs plus a 0.14~MiB carrier,
+\oldform{the serving state is 2.4~GiB of packs plus a 0.14~MiB carrier,
 a 5.6~GiB resident against the unconverted model's 7.5~GiB,
 writing 128~KiB of key-value cache per token against the teacher's
 144~KiB: the four carrier layers hold their attention state
 constant, while the other thirty-two layers keep their
 key-value cache, and an incremental carrier serves at a flat
-15 tokens per second from 1k to 8k context. \oldsystem{At full
+15 tokens per second from 1k to 8k context.} \oldsystem{At full
 keys with native-dtype stage compute the converted network
 scores exactly the teacher's zero-shot accuracy, 0.5938 against
 0.5938 on the same 256-question sample.}
@@ -111,9 +117,9 @@ least-squares linear maps for compression and claims none of
 those properties; the transcoder line gives additive attribution
 but trains its replacement and does not serve it. Every borrowed
 part is cited, and where a neighbouring method does something
-better, its adoption is planned and named. Full conversion, all
-thirty-six layers composed with the wormhole chain, is measured
-and holds the battery. The benefits also port back to unconverted,
+better, its adoption is planned and named. The full feed-forward
+conversion, all thirty-six stages composed with the four-layer
+wormhole chain, is measured and holds the battery. The benefits also port back to unconverted,
 conventionally trained networks: the same closed-form reads give
 a trained network's patches measured per-layer contracts without
 any conversion, an audit shadow that matches across devices
@@ -975,9 +981,9 @@ The conversion closes by composing the two replacements. The
 staged feed-forward layers of Qwen3-4B serve from int8 packs,
 one byte per weight with per-row scales, 2.4~GiB for all
 thirty-six layers, against 5.0~GiB for the same layers' fp16
-weights, and the four-layer wormhole chain carries attention at
+weights, \oldform{and the four-layer wormhole chain carries attention at
 layers 25 through 28 with 0.14~MiB of carrier state and no
-growing key-value cache. The composed serving form resides in
+growing key-value cache.} The composed serving form resides in
 5.6~GiB, against the unconverted model's 7.5~GiB of fp16
 weights, before any key-value cache. The composed network is measured on the full
 battery: five continuation prompts decode to clean prose with
@@ -993,11 +999,11 @@ standalone package that serves the exact measured construction.
 Wall-clock serving is measured on the same ladder the teacher's
 key-value cache uses. The straightforward full-prefix form pays
 quadratic cost, 0.42 tokens per second at 1k context falling to
-0.02 at 16k. A mixed-cache form, teacher layers decoding from
+0.02 at 16k. \oldform{A mixed-cache form, teacher layers decoding from
 their cache while the chain recomputes over the prefix, serves
 2.59 / 0.66 / 0.14 / 0.02 tokens per second at 1k / 4k / 8k /
 16k, sixteen greedy tokens bit-identical to the full-prefix form,
-against the teacher's 35.1 / 34.0 / 27.0 / 9.5. The carrier's
+against the teacher's 35.1 / 34.0 / 27.0 / 9.5.} The carrier's
 state is naturally incremental, and its state-machine form is the
 decaying cache: a ring of the last 256 rows, the sink, frozen
 cluster centers from the first 256 rows, and running per-cluster
@@ -1007,7 +1013,7 @@ than the ring still contribute through their cluster sums, so
 the carrier summarizes the whole conversation rather than
 keeping a window over it. Below 256 tokens it
 is exact dense attention; above, sink plus a 64-row band plus a
-monopole far field over the running sums. On the quality battery
+monopole far field over the running sums. \oldform{On the quality battery
 the incremental form holds parity on the instructed
 multiple-choice sample, scores 16.69 perplexity on a
 four-thousand-token slice and 0.5352 on the binding read, and its
@@ -1015,7 +1021,7 @@ wall-clock ladder is flat: 15.13 / 14.83 / 14.87 / 9.70 tokens
 per second at 1k / 4k / 8k / 16k. Its continuation repetition
 degrades to 0.50--0.65 against the composed form's 0.11, the
 measured cost of freezing the centers and summarizing the far
-field, recorded as a limit and left to the next levers. The
+field, recorded as a limit and left to the next levers.} The
 three forms measured against the unconverted model, summarized
 with the wall-clock ladder at 4k context:
 
@@ -1025,8 +1031,8 @@ with the wall-clock ladder at 4k context:
 Form & Size & ppl & mmlu & 4k tok/s \\
 \midrule
 Unconverted teacher (fp16) & 7.5~GiB $+$ KV & 15.80 & 0.5938 & 34.0 \\
-Composed (packs $+$ chain) & 2.4~GiB packs, 5.6~GiB resident & 17.24 & 0.5547 & 0.66 \\
-Incremental carrier & 13~MiB carrier state, 8.6~GiB at 1k & 16.69 & 0.5352 & 14.83 \\
+\oldform{Composed (packs $+$ chain)} & \oldform{2.4~GiB packs, 5.6~GiB resident} & \oldform{17.24} & \oldform{0.5547} & \oldform{0.66} \\
+\oldform{Incremental carrier} & \oldform{13~MiB carrier state, 8.6~GiB at 1k} & \oldform{16.69} & \oldform{0.5352} & \oldform{14.83} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1040,7 +1046,7 @@ structure's bytes divided by the number of tokens it can hold,
 stated per token. The teacher writes 144~KiB per token: all
 thirty-six layers store key and value for eight heads of 128
 dimensions in fp16, 4~KiB per layer, 2.25~GiB at 16k context.
-The final version writes less. The four chain layers, which
+\oldform{The composed form writes less. The four chain layers, which
 would otherwise add 16~KiB per token, hold no key-value cache
 at all: their attention is carried by a fixed 0.14~MiB of
 cluster centers and sink, frozen from the first 256 rows and
@@ -1057,7 +1063,7 @@ rows exactly, so its per-token cost is 3.3~KiB at 4k and
 0.8~KiB at 16k while the thirty-two teacher layers still write
 128~KiB per token; its measured resident ladder, 8.57 to
 12.44~GiB across 1k to 16k context, is that growing cache on
-top of the constant state. The trade is exactness, not bytes or
+top of the constant state.} The trade is exactness, not bytes or
 coverage: the carrier stores the prefix's statistics rather
 than its tokens, dropping nothing, and the repetition limit
 above records what that summarization costs.
@@ -1752,10 +1758,10 @@ The limits are stated as precisely as the capabilities.
    evaluation convention, and all thirty-six feed-forward layers
    staged. The composed serving form, int8-pack stages with
    wormhole attention, is usable but not competitive on the
-   binding read: 0.5547 against the teacher's 0.5938, a
+   binding read: \oldform{0.5547 against the teacher's 0.5938, a
    3.9-point deficit concentrated in the mathematics subjects,
    and closing that deficit beyond the measured key ladder is
-   open. At full keys with native-dtype stage compute and native
+   open}. At full keys with native-dtype stage compute and native
    attention the network matches the teacher exactly on the
    binding read, at native-scale compute. The stated deployment
    mitigation is tool routing, not in-head arithmetic: at launch
@@ -1789,22 +1795,22 @@ The limits are stated as precisely as the capabilities.
     extrapolated from the measured 576-token block, and the
     compute is counted in multiply-adds, not wall-clock time; the
     retrieval is gather-shaped, and its wall-clock ladder is
-    now measured: the mixed-cache form serves 2.59 / 0.66 /
+    now measured: \oldform{the mixed-cache form serves 2.59 / 0.66 /
     0.14 / 0.02 tokens per second at 1k / 4k / 8k / 16k context
     and the incremental carrier 15.13 / 14.83 / 14.87 / 9.70,
-    against the teacher's 35.1 / 34.0 / 27.0 / 9.5. The decode
+    against the teacher's 35.1 / 34.0 / 27.0 / 9.5}. The decode
     battery is a sampled stability check alongside teacher-forced
     perplexity, not a proof that every prompt decodes well, and it
     has run on the four-layer chain and the fifteen-layer body
     chain. The fifteen-layer body chain passes the battery and
     scores 0.5898 against the teacher's 0.5938 on the binding
     read, a one-question difference with no subject collapse.
-    The incremental carrier, the constant-memory serving form of
+    \oldform{The incremental carrier, the constant-memory serving form of
     Section 6.4, keeps the multiple-choice parity and the flat
     speed ladder, but its continuation repetition rises to
     0.50--0.65 against the composed form's 0.11, the measured
     cost of freezing the cluster centers and summarizing the far
-    field into a monopole.
+    field into a monopole.}
 
 12. The closed-form field classifier is measured and bounded.
     The ellipsoid-mixture idea, fields over pixel coordinates
@@ -1879,10 +1885,10 @@ ridge solve, reproducing the layer exactly on held-out rows, with
 mid-model attention replaced by retrieval wormholes that do not
 compound and a composed converted network of Qwen3-4B, all
 thirty-six feed-forward stages served from 2.4~GiB of int8
-packs with four wormhole carriers, that passes the closed-loop
+packs with \oldform{four wormhole carriers}, that passes the closed-loop
 battery and scores 0.5547 against the teacher's 0.5938
-zero-shot, with an incremental carrier serving it at constant
-memory and a flat speed ladder.
+zero-shot, \oldform{with an incremental carrier serving it at constant
+memory and a flat speed ladder}.
 Attribution and replay hold everywhere by construction.
 The negative results are part of the design: growth by re-solving
 drifts, un-gated summation extrapolates, and any basis that omits
