@@ -1558,9 +1558,21 @@ to zero (a float-epsilon residue). The shipped form is receiver
 plus patch plus gate: tens of megabytes and a ten-kilobyte
 classifier, with the class list, the input window, and the decode
 contract unchanged, so the artifact composes like any other
-closed-form capability. What remains open is stated with it:
-behavior-level evaluation on coding benchmarks rather than
-held-out cross-entropy, mixed-context streams, multi-donor
+closed-form capability. On a mixed stream --- eight alternations
+of coding and wiki blocks --- the gate reads at accuracy 0.983
+and the same conclusions hold: the full domain gain is retained
+(and larger than on the pure stream, $+0.064$ to $+0.087$~nats at
+ranks 128 and 256, because block context raises the baseline the
+patch reads), the outside-domain change stays within
+$0.006$~nats, and the hard and soft gates read identically to
+four decimals --- the discriminant saturates on block-pure text,
+so the soft form matters only where contexts mix token by token.
+The transition band is measured: after a block switch the first
+sixteen positions are ambiguous (mean gate $0.60$ on coding
+against $0.48$ on wiki), and by sixteen to sixty-four positions
+the reading is clean ($0.99$ against $0.03$). What remains open
+is stated with it: behavior-level evaluation on coding
+benchmarks rather than held-out cross-entropy, multi-donor
 composition, and the cross-family case where the class lists
 differ --- where the measured route is a string projection (the
 donor's log-probabilities summed over the donor-tokenization of
@@ -2211,10 +2223,16 @@ The open measurements are:
   over the ontology corpus with prompt-conditioned segments,
   donor patches attached as gated capability modes, the
   transfer-track instruments (validation, size law, gate) rerun
-  on the seed, the prompt arm re-measured at seed scale (the
-  toy-scale arms are measured inert for state organization), and
-  theme-group concentration by an output-preserving reconditioning
-  adopted only if it beats the gate baseline;
+  on the seed, and the prompt arm re-measured at seed scale (the
+  toy-scale arms are measured inert for state organization);
+\item theme-group concentration: an output-preserving
+  reconditioning that trades immediate quality for tighter theme
+  regions, judged at the composition level --- a temporary cost
+  at the concentration step is admissible if the
+  seed-with-patches system recovers it --- measured as
+  seed-plus-concentration-plus-patches against
+  seed-plus-patches at a matched budget, with the concentration
+  step's own cost reported either way;
 \item the ellipsoid-mixture port of the language track;
 \item the serve-time residency gate of the consumer-grade target
   (partially measured: the composed form resides in 5.6~GiB and
