@@ -6,7 +6,7 @@ This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`babeacb69536f2f9211b1c1233bb205c1ddeb00b06c5c124516289c9d71c7a43`),
+`84a20685499ffecde835c9bf0194d91214e739ec18b8fc96187f722a60435838`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -110,8 +110,8 @@ map itself stated against them (a per-layer correspondence census scored
 against a shuffled-control floor, a closed-form lens fitted from paired
 activations and scored on a held-out grid, an output-preserving
 reconditioning under a warp-spectrum monitor with an identity control);
-the superposition complexity line cited for the capacity side; six
-references added; claims unchanged).
+the superposition complexity line cited for the capacity side;  six
+references added; claims unchanged). r21 (this commit: the transfer track is measured and stated in the paper - one closed-form read across paired networks: the validation (a real arm of +0.179 nats of the 0.597-nat gap with a rank-flat shuffled floor of +0.073 and +0.106 nats pairing-specific), the rank curve (+0.111 to +0.213 nats; captures 0.186 to 0.386), the coherence profile (no argmax-level steering; no induced repetition), donor economy (quality is not transferability; count is not the lever; a 0.10-nat donor screen), the differential artifact (40 to 77 MB against a 2,944 MB donor; +0.039/+0.045 nats on the coding domain), the mode gate (retention 1.00x; outside-domain change to zero), cluster-routed fits (+0.044 capture over the global fit, a shuffled-assignment control at +0.2345), and the seed special case specified as the production receiver; the abstract, introduction, conclusion and open-measurements list extend to four tracks; seventeen transfer-track evidence files sealed; the claims list gains the transfer claim).
 
 ## Claims
 
@@ -145,7 +145,20 @@ references added; claims unchanged).
    to any conventionally trained network without converting it.
    Measured by the audit shadow on a never-converted teacher,
    with per-layer readings matching across devices exactly.
-5. The prediction, stated with its instruments named: the
+5. One trained network's behavior can be read into another, frozen,
+   through one closed-form solve of paired states: the
+   pairing-specific transfer is +0.106 nats of a 0.597-nat gap
+   (rank-128 real arm +0.179 with a rank-flat shuffled floor of
+   +0.073), the read is a distributional recalibration rather than
+   an argmax-level steering, donor quality is not transferability
+   and donor count is not the lever (a same-family pair overlaps
+   about 70 percent), and the transfer ships as a domain
+   differential tens of megabytes against a gigabytes-scale donor
+   with a mode gate that holds outside-domain behavior fixed. The
+   intended production receiver is the project's own from-scratch
+   seed.
+
+6. The prediction, stated with its instruments named: the
    serve-refit law detaches from the conversion (a per-layer
    closed-form refit on a network's own served stream is a
    maintenance step for any network), and local least-squares

@@ -2,9 +2,10 @@
 
 % ------------------------------------------------------------------
 %  Additive Networks
-%  One closed-form additive construction measured on three tracks:
-%  signed-distance fields, language from scratch, and conversion of
-%  a pretrained model. Merged record of the former field and
+%  One closed-form additive construction measured on four tracks:
+%  signed-distance fields, language from scratch, conversion of a
+%  pretrained model, and behavior transfer between paired networks.
+%  Merged record of the former field and
 %  language research papers (overlap had grown significant).
 %  Moazzam Abdullah Khan
 %  Compiled with Tectonic (XeTeX), run twice for references.
@@ -37,15 +38,16 @@
   pdftitle={Additive Networks: Fields, Language, and Conversion},
   pdfauthor={Moazzam Abdullah Khan},
   pdfsubject={One closed-form additive construction measured on
-    three tracks}
+    four tracks}
 }
 
 \title{\bfseries Additive Networks\\[0.4em]
 \large One closed-form additive construction measured on fields,
-language from scratch, and the conversion of a pretrained model}
+language from scratch, the conversion of a pretrained model, and
+behavior transfer between paired networks}
 \author{Moazzam Abdullah Khan\\[0.4em]
 \large \href{https://github.com/moazzamak}{github.com/moazzamak}}
-\date{September 10, 2026}
+\date{September 11, 2026}
 
 \begin{document}
 
@@ -66,7 +68,7 @@ be attributed. A network is grown from scratch one frozen stage at
 a time, or converted from a pretrained model by replacing its parts
 with fitted stages at serve time.
 
-The construction is measured on three tracks. On signed-distance
+The construction is measured on four tracks. On signed-distance
 fields, the standard continuous description of a shape, it beats a
 small trained residual network on every real shape where that
 network converges, at less than half its error, and sits a median
@@ -100,7 +102,14 @@ scores 0.5391 against the teacher's 0.5938 on the same
 repetition of 0.04 to 0.85 against its registered bar of 0.21:
 the remaining measured price of holding every attention state
 constant, recorded as this form's limit. It serves at about 12
-to 16 tokens per second from 1k to 16k context.
+to 16 tokens per second from 1k to 16k context. And between two
+trained networks, both left untouched: one closed-form read
+carries $+0.179$~nats of a $0.597$-nat gap into a frozen receiver
+($+0.106$~nats of it pairing-specific against a rank-flat
+shuffled floor); a domain differential ships as a 40--77~MB patch
+against a 2{,}944~MB donor, with a mode gate that holds
+outside-domain change at zero; and the intended production
+receiver is the project's own from-scratch seed.
 
 No prior work converts a pretrained network into nonlinear
 closed-form stages that keep exact attribution, deterministic
@@ -152,17 +161,21 @@ the art as the report is written, not a claim about what deep
 networks can never do.
 
 The report measures one additive construction against that
-background, on three tracks. The field track fits signed-distance
+background, on four tracks. The field track fits signed-distance
 fields, the standard continuous description of a shape, as a global
 carrier plus frozen libraries of local corrections. The language
 track trains an additive language model from scratch, with no
 pretrained teacher, at toy scale. The conversion track takes a
 pretrained language model and replaces its internal parts with
-fitted additive stages at serve time. The scales differ on
+fitted additive stages at serve time. The transfer track leaves
+both networks trained and untouched: one closed-form read carries
+part of one network's behavior across into another, with the
+differential artifact and the mode gate that ships it measured.
+The scales differ on
 purpose. The field and language tracks establish the construction
 on small instruments; the conversion track is the serious-scale
 experiment, one pretrained model converted, with mixture-of-experts
-conversion as the next step. The three tracks share one core,
+conversion as the next step. The four tracks share one core,
 given in Section 2: a frozen basis read out by one regularized
 linear solve, and the track-specific realizations that keep it
 small and fast in high dimension, the ellipsoid mixture in
@@ -1417,6 +1430,180 @@ any network; what requires the conversion is the frozen stage's
 closed-form lifetime, not the measurement.
 
 % ==================================================================
+\section{The transfer track: behavior read from paired networks}
+\label{sec:transfer}
+% ==================================================================
+
+The fourth track leaves both networks trained and untouched. The
+conversion track turns a trained network into the additive form;
+the transfer track asks how much of one trained network's behavior
+can be read out of another through one closed-form solve. The
+instrument keeps the discipline of the other tracks: frozen
+states, one ridge solve, held-out rows only, a shuffled-control
+floor, and bit-exact replay from the stored captures.
+
+\subsection{The instrument}
+
+Two networks that share a token vocabulary are run over the same
+token stream: a receiver (Qwen3-4B, thirty-six layers) and a donor
+(Qwen2.5-7B). At every position the receiver's head-input state
+$h$ and its own next-token distribution $z_A$ are recorded, and
+the donor's next-token distribution $z_B$ is read at the same
+positions. The transfer target is the donor's distribution delta
+in the receiver's class space, $d = \mathrm{clp}(z_B) -
+\mathrm{clp}(z_A)$ with centered log-probabilities. The correction
+is a rank-$r$ linear read of the receiver's own states: the delta
+basis is computed on fit rows only, from the top $r$ directions of
+the delta Gram matrix; the features are a 256-dimensional PCA of
+the receiver's standardized head-input states, with fit-row
+statistics only, plus a bias; one ridge solve at a relative
+regularization of $10^{-6}$ times the Gram trace gives the
+coefficients, and the correction is added to the receiver's
+logits. Both networks stay frozen, there is no backpropagation
+anywhere in the instrument, and the fit is one exact solve.
+
+Two guards keep the reading honest. A shuffle-null refits the same
+instrument with the fit coefficients permuted, so the capture a
+parameter count alone can produce is measured, not assumed; this
+is the control-task discipline of probe design
+\cite{hewitt2019}. And the anchor CE values replay bit-exactly
+from the stored captures, so every quoted number is reproducible
+from the frozen artifacts.
+
+\subsection{The validation}
+
+The measurement stream is 8{,}192 token positions of a
+Wikipedia-text corpus, 1{,}638 of them held out. The CE lines are:
+receiver 3.1611, donor 2.5643, a gap of 0.597~nats; the rank-128
+graft reads 2.9823 against a shuffled null of 3.0879, capturing
+0.300 of the gap. In deltas: the real arm closes $+0.1788$~nats
+of the gap (95\% CI $[0.132, 0.225]$), the shuffled null closes
+$+0.0732$ $[0.040, 0.106]$, and the null is rank-flat --- the
+calibration that a permuted fit still carries from the corpus-mean
+delta, not a directional read. The pairing-specific part is
+therefore $+0.106$~nats, and the worst corner of the real arm's
+interval stays positive ($+0.027$).
+
+The rank curve is monotone in the real arm and flat in the null:
+$+0.111$, $+0.154$, $+0.179$, $+0.213$~nats at ranks 16, 64, 128,
+256 (captures 0.186 to 0.357; 0.386 at rank 512), while the null
+stays between $+0.073$ and $+0.078$ at every rank. The
+pairing-specific excess therefore grows with rank, from $+0.033$
+to $+0.140$~nats.
+
+\subsection{What the transfer is}
+
+The coherence profile reads what kind of object the correction is.
+Agreement with the donor's greedy choice is 0.766; donor-only
+top-1 choices fall below student-only choices at every rank, so
+there is no argmax-level steering toward the donor; and text
+generated under the graft carries no induced repetition --- the
+graft repairs one the receiver already had. The correction is a
+statistical recalibration of the receiver's distribution toward
+the donor's, not a copy of the donor's decisions.
+
+\subsection{Donor economy}
+
+Two findings decide how donors should be spent. First, donor
+quality is not transferability: a second donor, far larger and
+stronger (CE line 2.3203 against the first donor's 2.5643),
+captures less of its own gap, 0.173 to 0.223 at ranks 128 to 512
+against the first donor's 0.300 to 0.386. Second, donor count is
+not the lever: stacking the two donors, the second donor's
+increment is 0.5, 1.3, and 0.36 percent of the gap at ranks 128,
+256, and 512 --- not rank starvation, and the deltas of this
+same-family pair are about 70 percent content-overlapping (at
+rank 256, 0.659 and 0.725 of one delta's energy lies inside the
+other's top subspace, at a mean principal-angle cosine of 0.787).
+What is left of size on the table is donor dissimilarity; a
+mid-stack feature block appended beside the head-input block adds
+$+0.008$ to $+0.012$~capture. Splitting the fit by the receiver's
+own state clusters and routing the correction to the matching
+cluster raises capture from $0.300$ to $0.344$ at rank 128 (eight
+clusters, nearest-centroid routing); a same-size shuffled-
+assignment control reads $0.234$, so the grouping, not the extra
+parameters, carries the gain. And one screen must precede any
+negative reading: the donor must beat the receiver on the capture
+domain by a stated margin before a fit is read (0.10~nats is the
+margin used throughout this track), because a donor that is
+already weaker than the receiver measures nothing --- the
+donor-quality confound.
+
+\subsection{The differential as an artifact}
+
+The coding case makes the shape of the result concrete. A
+coding-specialized 1.5B donor against the 4B receiver on local
+Python source text: the donor's line reads 1.5257 against the
+receiver's 1.7136 ($+0.188$~nats, the margin gate cleared), and
+the closed-form read captures $+0.039$ and $+0.045$~nats at ranks
+128 and 256 --- 23 to 27 percent of the domain gap. The artifact
+that performs this is small: the rank-128 patch is 40~MB and the
+rank-256 patch 77~MB in fp16, against the donor's 2{,}944~MB ---
+1.4 to 2.6 percent of the donor's size --- and it is added to a
+frozen receiver without changing a weight. Applied
+unconditionally, however, the correction also moves text outside
+the domain: wiki-text CE worsens by $+0.045$ and $+0.034$~nats at
+the two ranks, against a pre-registered locality bar of a quarter
+of the gain. The patch is a global recalibration with a domain
+tilt, not a localized edit.
+
+\subsection{The mode gate}
+
+The resolution is a gate on the receiver's own states. A linear
+discriminant fit on head-input states, fit rows only, separates
+coding text from prose at measured accuracy 1.000. Multiplying
+the correction by the gate keeps the full domain gain ---
+retention $1.00\times$ --- and drives the outside-domain change
+to zero (a float-epsilon residue). The shipped form is receiver
+plus patch plus gate: tens of megabytes and a ten-kilobyte
+classifier, with the class list, the input window, and the decode
+contract unchanged, so the artifact composes like any other
+closed-form capability. What remains open is stated with it:
+behavior-level evaluation on coding benchmarks rather than
+held-out cross-entropy, mixed-context streams, multi-donor
+composition, and the cross-family case where the class lists
+differ --- where the measured route is a string projection (the
+donor's log-probabilities summed over the donor-tokenization of
+each receiver token's character span; the audit reads mapped mass
+1.0000 within eight donor tokens per receiver token, with 0.35
+percent unmappable mass).
+
+\subsection{The special case: the seed as receiver}
+
+The instrument above reads one trained network through another;
+the production configuration reverses the roles. The receiver is
+the project's own seed: the from-scratch additive learner of the
+language track, trained over the ontology corpus --- the wiki
+slice with its concept vocabulary --- with the theme prompt
+carried on the training segments, and admitted under the seed
+requirements the growth line fixes: head utilization near the
+participation ratio at the stated concept counts, a positive
+singular margin at every reconditioning step, a measured
+correspondence profile, growth by frozen stages, and a
+from-scratch shadow student as the fallback for any domain the
+seed cannot reach. Nothing in the patch interface changes when
+the receiver is the seed: the correction still reads the
+receiver's own states through one closed-form solve and is still
+gated on those states, so the measured instrument --- the
+validation, the rank curve, the size law of the differential,
+the gate --- ports with the class list and input window the seed
+defines. The prompt part of the recipe is measured at toy scale:
+three organization pressures and the title prompt each move the
+measured read-state geometry by at most the $+0.001$ inert band
+against a $+0.01$ bar, so the prompt is a recipe choice whose
+seed-scale re-measurement is open, and the seed-scale graft
+itself is named in the closing list of open measurements.
+
+What is not claimed here is a new mechanism: correspondence
+between independently trained networks is established prior art,
+certified by use (stitching, relative representations,
+function-preserving transforms) \cite{stitch2026,moschella2022,
+relgeom2024,fpt2024}. What is claimed, and measured at these
+scales: the closed-form read itself, its guard discipline, the
+differential artifact with its size law, and the gate that turns
+the differential into a switchable capability.
+
+% ==================================================================
 \section{Prior art and position}
 % ==================================================================
 
@@ -1944,7 +2131,7 @@ pays by the one Shapley rule at the code level.
 \section{Conclusion}
 % ==================================================================
 
-One construction, three tracks, one discipline. A frozen basis read
+One construction, four tracks, one discipline. A frozen basis read
 out by one cross-validated ridge solve, realized as an ellipsoid
 mixture with a level-of-detail ladder, beats a small trained
 residual net on signed-distance fields on every real shape where
@@ -1959,7 +2146,14 @@ packs and the attention of all thirty-six layers carried with no
 key-value cache anywhere, a fixed 0.19~GiB state at any context,
 serving about 12 to 16 tokens per second from 1k to 16k context
 and scoring 0.5391 against the teacher's 0.5938 zero-shot, with
-its continuation and far-field limits measured and stated.
+its continuation and far-field limits measured and stated. And
+with both networks left untouched, the same discipline reads one
+network's behavior into another: a rank-$r$ closed-form read
+closes $+0.179$ to $+0.213$~nats of a $0.597$-nat gap, $+0.106$
+nats of it pairing-specific against a rank-flat shuffled floor,
+adding $+0.044$ capture when the fit is routed by the receiver's
+own clusters, and shipped as a 40--77~MB differential with a
+gate that holds outside-domain behavior fixed.
 Attribution and replay hold everywhere by construction.
 The negative results are part of the design: growth by re-solving
 drifts, un-gated summation extrapolates, and any basis that omits
@@ -2013,6 +2207,14 @@ The open measurements are:
   stronger open teacher, one arm targeted at the hidden state, with
   the code-space map read through the lens-inversion diagnostic and
   the block-correspondence census locating the uncovered blocks;
+\item the seed as the graft receiver: a from-scratch seed trained
+  over the ontology corpus with prompt-conditioned segments,
+  donor patches attached as gated capability modes, the
+  transfer-track instruments (validation, size law, gate) rerun
+  on the seed, the prompt arm re-measured at seed scale (the
+  toy-scale arms are measured inert for state organization), and
+  theme-group concentration by an output-preserving reconditioning
+  adopted only if it beats the gate baseline;
 \item the ellipsoid-mixture port of the language track;
 \item the serve-time residency gate of the consumer-grade target
   (partially measured: the composed form resides in 5.6~GiB and
