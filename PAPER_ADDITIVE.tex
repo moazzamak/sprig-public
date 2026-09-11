@@ -1606,6 +1606,27 @@ against a $+0.01$ bar, so the prompt is a recipe choice whose
 seed-scale re-measurement is open, and the seed-scale graft
 itself is named in the closing list of open measurements.
 
+Two read-interface additions are measured at seed scale with the
+tables frozen. The tied read finds a planted fact --- its key
+scores rank zero against the whole prefix --- but at unit
+temperature the softmax dilutes the match with length (the
+planted key's weight falls from $2.1\times10^{-2}$ at two
+thousand tokens to $4.2\times10^{-3}$ at eight thousand):
+widening the window alone does not carry facts; the score
+sharpness is the recall dial. A carrier read over fixed centers,
+reading the members of its routed clusters exactly, recovers the
+planted facts at full-attention parity at eight thousand tokens
+(recall 1.000 against 1.000 at matched sharpening; 826 visited
+keys per query; 1.6~MiB of fixed state), while the same read
+with only per-cluster statistics holds the measured contrast
+(0.102) --- facts travel through the routed members, statistics
+through the sums. Adding the sharper read column after training
+is admitted by three gates: a zero-weight column is bit-exact
+against the checkpoint ($117.21$), a closed-form fit onto the
+model's own logits costs $+0.13$ perplexity, and a brief
+head-only fine-tune improves the checkpoint by $1.0$ perplexity
+($117.21$ to $116.21$).
+
 What is not claimed here is a new mechanism: correspondence
 between independently trained networks is established prior art,
 certified by use (stitching, relative representations,
@@ -2236,8 +2257,10 @@ The open measurements are:
 \item the ellipsoid-mixture port of the language track;
 \item the serve-time residency gate of the consumer-grade target
   (partially measured: the composed form resides in 5.6~GiB and
-  serves 16k context; the consumer-grade envelope is the open
-  part);
+  serves 16k context, and the seed's fixed-state carrier read now
+  targets one million tokens with a 1.6~MiB state at the measured
+  eight-thousand-token rung; the million-token residency and
+  recall curves are the open part);
 \item the from-scratch track at real scale, on a fixed 300--500 euro
   compute budget, GPT-2-class subword training in which the student
   queries a teacher only at its own measured disagreement tail,
