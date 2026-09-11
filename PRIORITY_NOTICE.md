@@ -1,12 +1,12 @@
 # Priority notice
 
-Dated: 2026-09-10
+Dated: 2026-09-11
 
 This repository anchors priority for the CG-MoE project's claims.
 The claims are stated below in final-system language. They are
 bound to sealed evidence by the hash manifest in
 `EVIDENCE_MANIFEST.sha256` (manifest hash:
-`9cec8034b436fddef0a0d893b8a5daefc87a03aca52dff159d8adcd9516a137e`),
+`babeacb69536f2f9211b1c1233bb205c1ddeb00b06c5c124516289c9d71c7a43`),
 which lists the sha256 of the whitepaper
 (`PAPER_ADDITIVE.tex`) and of each sealed evidence file. The
 evidence files themselves remain private until the project's own
@@ -103,7 +103,15 @@ repetition gate remains the measured limit at 0.04-0.85 against
 the 0.21 bar; both papers' bibliographies were verified against
 live records and repaired where wrong; artifact re-anchored
 (package digest fa78d2bb over 54 files, checksums.json
-6a0cd361); the model card and paper restate the numbers above).
+6a0cd361); the model card and paper restate the numbers above). r20 (this commit: the cross-network map positioned against the nearest
+lines - model stitching certified by use, relative representations, and
+function-preserving transforms cited, with the instruments that read the
+map itself stated against them (a per-layer correspondence census scored
+against a shuffled-control floor, a closed-form lens fitted from paired
+activations and scored on a held-out grid, an output-preserving
+reconditioning under a warp-spectrum monitor with an identity control);
+the superposition complexity line cited for the capacity side; six
+references added; claims unchanged).
 
 ## Claims
 

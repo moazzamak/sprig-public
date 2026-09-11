@@ -1108,8 +1108,13 @@ siblings: the map between any two code spaces is itself fitted from
 paired activations. For sibling networks the map is the
 permutation-matching line \cite{entezari2021}, with re-basin
 solutions \cite{ainsworth2023} and optimal-transport fusion
-\cite{singh2020}. For arbitrary networks the map is read through a
-lens-inversion diagnostic: multiple images, one region of one
+\cite{singh2020}; where the map is bridged by a trained stitch
+layer between frozen networks, or by relative representations that
+replace absolute states with similarities to a shared anchor set,
+it is certified usable before any weight moves
+\cite{stitch2026,moschella2022,relgeom2024}. For arbitrary networks
+the map is read through a lens-inversion diagnostic: multiple
+images, one region of one
 network appearing at several places in the other, and caustics,
 near-singular Jacobians where the alignment flips under noise, both
 measured on paired activations. A per-block correspondence census,
@@ -1716,6 +1721,32 @@ map directs which data to requisition next. The submodule-level
 closed-form merging of \cite{submodlin2025} and the byte-exact
 replay protocol of \cite{kvgraft2026} are the nearest work on
 those two axes and are cited where the predictions are measured.
+
+The cross-network map. The nearest lines on relating two
+networks' states establish that the map exists and certify it by
+use: model stitching trains a light stitch layer between frozen
+networks and finds heterogeneous foundation models reliably
+stitchable when the stitch is trained by feature matching at the
+target's penultimate layer \cite{stitch2026}; relative
+representations make the map non-trainable, replacing absolute
+states with similarities to a shared anchor set, with a
+densification regularizer that clusters classes during fine-tuning
+\cite{moschella2022,relgeom2024}; and function-preserving
+transforms derive exact warm-start maps for architecture changes
+between related networks \cite{fpt2024}. Each line certifies the
+map by downstream use. None of them reads the map itself: a
+per-layer correspondence census scored against a shuffled-control
+floor, in the probe-selectivity tradition \cite{hewitt2019}, a
+closed-form lens fitted from paired activations and scored on a
+held-out grid, or an output-preserving reconditioning that
+concentrates that correspondence under a warp-spectrum monitor
+with an identity control. The superposition line supplies the
+frame for the capacity side of the same measurements: computing
+$m$ features in superposition needs $\Omega(m\log m)$ parameters,
+while representing the same features can need as few as
+$O(\log m)$ neurons \cite{superpos2024}, so an empirical capacity
+line read from the states is a representing line, not a computing
+bound.
 
 A knowledge analogy: The trained form and the closed-form stage
 are the same two strategies that manufacturing names subtractive
@@ -2473,6 +2504,40 @@ S.~Schelpe.
 Smarter and cheaper at once: byte-exact KV-cache grafting turns a
 frozen small model into a verified-knowledge flywheel.
 \emph{arXiv:2607.14431}, 2026.
+
+\bibitem{stitch2026}
+Z.~Mai, K.~Zhang, F.-E.~Wang, Z.~K.~Wang, A.~Y.~C.~Chen, L.~Xia,
+M.~Sun, W.-L.~Chao, and C.-H.~Kuo.
+Revisiting model stitching in the foundation model era.
+\emph{CVPR}, 2026. arXiv:2603.12433.
+
+\bibitem{moschella2022}
+L.~Moschella, V.~Maiorca, M.~Fumero, A.~Norelli, F.~Locatello, and
+E.~Rodol\`a.
+Relative representations enable zero-shot latent space
+communication.
+\emph{ICLR}, 2023. arXiv:2209.15430.
+
+\bibitem{relgeom2024}
+A.~Garc\'ia-Castellanos, G.~L.~Marchetti, D.~Kragic, and
+M.~Scolamiero.
+Relative representations: topological and geometric perspectives.
+\emph{arXiv:2409.10967}, 2024.
+
+\bibitem{fpt2024}
+M.~Painter.
+Towards a more complete theory of function preserving transforms.
+\emph{arXiv:2410.11038}, 2024.
+
+\bibitem{superpos2024}
+M.~Adler and N.~Shavit.
+On the complexity of neural computation in superposition.
+\emph{arXiv:2409.15318}, 2024.
+
+\bibitem{hewitt2019}
+J.~Hewitt and P.~Liang.
+Designing and interpreting probes with control tasks.
+\emph{EMNLP}, 2019. arXiv:1909.03368.
 
 \bibitem{slicegpt2024}
 S.~Ashkboos, M.~L.~Croci, M.~Gennari~do~Nascimento, T.~Hoefler,
