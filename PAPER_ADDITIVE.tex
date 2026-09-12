@@ -2151,7 +2151,15 @@ The limits are stated as precisely as the capabilities.
     discriminative readout, patch-relative coordinates, patch
     descriptors) recovers the gap. The descriptor form is
     shift-robust, with no shifted-test drop, but capacity-bound
-    at this scale. The vision deliverable is therefore the
+    at this scale. Both arms of that comparison were trained on
+    the same modest corpus; state-of-the-art vision encoders
+    train on corpora orders of magnitude larger, which the fixed
+    budget of this program cannot approach. The measurement
+    bounds the construction at matched parameters on one corpus
+    and says nothing about it at scales this program cannot
+    reach, so the choice of the conversion route is a constraint
+    of data and budget at least as much as a property of the
+    construction. The vision deliverable is therefore the
     conversion track: a trained vision transformer's MLP blocks
     reproduce at held-out $R^2$ 1.0, substituting all six
     blocks leaves test accuracy exactly the network's own, and
